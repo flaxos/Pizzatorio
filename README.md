@@ -3,17 +3,27 @@
 A lightweight factory/automation prototype designed to run in **Pydroid on Android** and on desktop Python.
 
 ## Features implemented
-- Running factory with moving items on conveyors.
+- Multi-stage food pipeline:
+  - Ingredients spawn from source.
+  - Processors convert raw ingredients into prepared ingredients.
+  - Ovens cook prepared ingredients into finished food.
+  - Bot docks boost final-mile delivery speed.
 - Build controls:
   - `1` conveyor
-  - `2` machine
-  - `3` delete
+  - `2` processor
+  - `3` oven *(unlocks from research)*
+  - `4` bot dock *(unlocks from research)*
+  - `5` delete
   - `R` rotate selected part
   - Left click to place/delete
+- Progression systems:
+  - Tech tree unlocks (`ovens`, `bots`, `turbo belts`) driven by production XP.
+  - Expansion tiers increase as your factory runs and fulfills demand.
 - KPI panel updates live:
   - Bottleneck percentage
   - Hygiene percentage (random hygiene events + recovery)
   - Throughput/SLA on-time rate
+  - Tech unlock states, XP, and expansion tier
 - Deliveries are launched from sink as either **drone** or **scooter** with travel time and SLA.
 - Save/load to `midgame_save.json` using:
   - `S` save

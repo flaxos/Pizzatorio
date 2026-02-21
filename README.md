@@ -25,6 +25,8 @@ A lightweight factory/automation prototype designed to run in **Pydroid on Andro
   - Throughput/SLA on-time rate
   - Tech unlock states, XP, and expansion tier
 - Deliveries are launched from sink as either **drone** or **scooter** with travel time and SLA.
+- Customer orders are now generated from a small **data-driven recipe catalog** and fulfilled FIFO from produced pizzas.
+- Basic economy loop tracks **cash rewards** for fulfilled deliveries and **waste** when pizzas are produced without pending orders.
 - Save/load to `midgame_save.json` using:
   - `S` save
   - `L` load

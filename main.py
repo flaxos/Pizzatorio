@@ -41,6 +41,27 @@ PROCESS_FLOW = {
     BOT_DOCK: {"from": "baked", "to": "baked", "research_gain": 0.06, "delivery_boost": 1.2},
 }
 
+RECIPES = {
+    "margherita": {
+        "display_name": "Margherita",
+        "sell_price": 12,
+        "sla": 11.0,
+        "unlock_tier": 0,
+    },
+    "pepperoni": {
+        "display_name": "Pepperoni",
+        "sell_price": 15,
+        "sla": 10.0,
+        "unlock_tier": 1,
+    },
+    "veggie": {
+        "display_name": "Veggie Deluxe",
+        "sell_price": 17,
+        "sla": 9.5,
+        "unlock_tier": 2,
+    },
+}
+
 
 @dataclass
 class Tile:
@@ -64,6 +85,16 @@ class Delivery:
     remaining: float
     sla: float
     duration: float
+    recipe_key: str
+    reward: int
+
+
+@dataclass
+class Order:
+    recipe_key: str
+    remaining_sla: float
+    total_sla: float
+    reward: int
 
 
 def clamp(v: float, lo: float, hi: float) -> float:
@@ -76,8 +107,10 @@ class FactorySim:
         self.grid: List[List[Tile]] = [[Tile() for _ in range(GRID_W)] for _ in range(GRID_H)]
         self.items: List[Item] = []
         self.deliveries: List[Delivery] = []
+        self.orders: List[Order] = []
         self.time = 0.0
         self.spawn_timer = 0.0
+        self.order_spawn_timer = 0.0
         self.hygiene = 100.0
         self.bottleneck = 0.0
         self.expansion_level = 1
@@ -91,6 +124,8 @@ class FactorySim:
         self.auto_bot_charge = 0.0
         self.completed = 0
         self.ontime = 0
+        self.money = 0
+        self.waste = 0
         self.last_hygiene_event = 0.0
 
         self.place_static_world()
@@ -109,8 +144,10 @@ class FactorySim:
             "grid": [[asdict(tile) for tile in row] for row in self.grid],
             "items": [asdict(i) for i in self.items],
             "deliveries": [asdict(d) for d in self.deliveries],
+            "orders": [asdict(o) for o in self.orders],
             "time": self.time,
             "spawn_timer": self.spawn_timer,
+            "order_spawn_timer": self.order_spawn_timer,
             "hygiene": self.hygiene,
             "bottleneck": self.bottleneck,
             "expansion_level": self.expansion_level,
@@ -120,6 +157,8 @@ class FactorySim:
             "auto_bot_charge": self.auto_bot_charge,
             "completed": self.completed,
             "ontime": self.ontime,
+            "money": self.money,
+            "waste": self.waste,
             "last_hygiene_event": self.last_hygiene_event,
         }
 
@@ -128,9 +167,11 @@ class FactorySim:
         sim = cls()
         sim.grid = [[Tile(**tile) for tile in row] for row in data["grid"]]
         sim.items = [Item(**cls._normalize_item_state(i)) for i in data.get("items", [])]
-        sim.deliveries = [Delivery(**d) for d in data.get("deliveries", [])]
+        sim.deliveries = [Delivery(**cls._normalize_delivery_state(d)) for d in data.get("deliveries", [])]
+        sim.orders = [Order(**o) for o in data.get("orders", [])]
         sim.time = data.get("time", 0.0)
         sim.spawn_timer = data.get("spawn_timer", 0.0)
+        sim.order_spawn_timer = data.get("order_spawn_timer", 0.0)
         sim.hygiene = data.get("hygiene", 100.0)
         sim.bottleneck = data.get("bottleneck", 0.0)
         sim.expansion_level = data.get("expansion_level", 1)
@@ -147,17 +188,34 @@ class FactorySim:
         sim.auto_bot_charge = data.get("auto_bot_charge", 0.0)
         sim.completed = data.get("completed", 0)
         sim.ontime = data.get("ontime", 0)
+        sim.money = data.get("money", 0)
+        sim.waste = data.get("waste", 0)
         sim.last_hygiene_event = data.get("last_hygiene_event", 0.0)
         return sim
 
     @staticmethod
     def _normalize_item_state(raw_item: Dict) -> Dict:
         item = dict(raw_item)
+        if "stage" not in item and "cooked" in item:
+            item["stage"] = "baked" if item.get("cooked") else "raw"
         legacy_stage = item.get("stage", "raw")
         if isinstance(legacy_stage, int):
             idx = int(clamp(float(legacy_stage), 0, len(ITEM_STAGE_ORDER) - 1))
             item["stage"] = ITEM_STAGE_ORDER[idx]
-        return item
+        return {
+            "x": int(item.get("x", 0)),
+            "y": int(item.get("y", 0)),
+            "progress": float(item.get("progress", 0.0)),
+            "stage": str(item.get("stage", "raw")),
+            "delivery_boost": float(item.get("delivery_boost", 0.0)),
+        }
+
+    @staticmethod
+    def _normalize_delivery_state(raw_delivery: Dict) -> Dict:
+        delivery = dict(raw_delivery)
+        delivery.setdefault("recipe_key", "margherita")
+        delivery.setdefault("reward", RECIPES[delivery["recipe_key"]]["sell_price"])
+        return delivery
 
     def save(self, path: Path = SAVE_FILE) -> None:
         path.write_text(json.dumps(self.to_dict(), indent=2))
@@ -194,19 +252,54 @@ class FactorySim:
         dx, dy = DIRS[rot % 4]
         return x + dx, y + dy
 
-    def _enqueue_delivery(self) -> None:
+    def _available_recipes(self) -> List[str]:
+        return [
+            key
+            for key, recipe in RECIPES.items()
+            if recipe.get("unlock_tier", 0) <= (self.expansion_level - 1)
+        ]
+
+    def _spawn_order(self) -> None:
+        available = self._available_recipes()
+        if not available:
+            return
+        key = self.rng.choice(available)
+        recipe = RECIPES[key]
+        self.orders.append(
+            Order(
+                recipe_key=key,
+                remaining_sla=recipe["sla"],
+                total_sla=recipe["sla"],
+                reward=recipe["sell_price"],
+            )
+        )
+
+    def _enqueue_delivery(self, order: Order) -> None:
         mode = self.rng.choice(["drone", "scooter"])
         travel = self.rng.uniform(3.5, 7.5) if mode == "drone" else self.rng.uniform(5.0, 10.0)
-        sla = 8.0 if mode == "drone" else 11.0
-        self.deliveries.append(Delivery(mode=mode, remaining=travel, sla=sla, duration=travel))
+        self.deliveries.append(
+            Delivery(
+                mode=mode,
+                remaining=travel,
+                sla=max(2.5, order.remaining_sla),
+                duration=travel,
+                recipe_key=order.recipe_key,
+                reward=order.reward,
+            )
+        )
 
     def tick(self, dt: float) -> None:
         self.time += dt
         self.spawn_timer += dt
+        self.order_spawn_timer += dt
 
         if self.spawn_timer >= 1.8:
             self.spawn_timer = 0.0
             self.items.append(Item(1, 7, 0.0, stage="raw"))
+
+        if self.order_spawn_timer >= 5.5:
+            self.order_spawn_timer = 0.0
+            self._spawn_order()
 
         # hygiene events
         if self.time - self.last_hygiene_event > 14 and self.rng.random() < 0.015:
@@ -250,10 +343,14 @@ class FactorySim:
 
             ntile = self.grid[ny][nx]
             if ntile.kind == SINK and item.stage == "baked":
-                self._enqueue_delivery()
-                if item.delivery_boost > 0:
-                    self.deliveries[-1].remaining = max(1.5, self.deliveries[-1].remaining - item.delivery_boost)
-                    self.deliveries[-1].duration = self.deliveries[-1].remaining
+                if self.orders:
+                    order = self.orders.pop(0)
+                    self._enqueue_delivery(order)
+                    if item.delivery_boost > 0:
+                        self.deliveries[-1].remaining = max(1.5, self.deliveries[-1].remaining - item.delivery_boost)
+                        self.deliveries[-1].duration = self.deliveries[-1].remaining
+                else:
+                    self.waste += 1
                 continue
 
             if ntile.kind == EMPTY:
@@ -288,6 +385,13 @@ class FactorySim:
             self.expansion_level += 1
 
         # Deliveries & SLA
+        next_orders: List[Order] = []
+        for order in self.orders:
+            order.remaining_sla -= dt
+            if order.remaining_sla > 0:
+                next_orders.append(order)
+        self.orders = next_orders
+
         next_deliveries: List[Delivery] = []
         for d in self.deliveries:
             d.remaining -= dt
@@ -295,6 +399,9 @@ class FactorySim:
                 self.completed += 1
                 if d.duration <= d.sla:
                     self.ontime += 1
+                    self.money += d.reward
+                else:
+                    self.money += int(d.reward * 0.5)
             else:
                 next_deliveries.append(d)
         self.deliveries = next_deliveries
@@ -322,8 +429,10 @@ def run_headless(ticks: int, dt: float, load_save: bool) -> None:
     sim.save()
     print(
         f"headless_done t={sim.time:.1f} items={len(sim.items)} "
-        f"delivering={len(sim.deliveries)} kpi[hyg={sim.hygiene:.1f},btl={sim.bottleneck:.1f},sla={sim.ontime_rate:.1f}]"
+        f"orders={len(sim.orders)} delivering={len(sim.deliveries)} "
+        f"kpi[hyg={sim.hygiene:.1f},btl={sim.bottleneck:.1f},sla={sim.ontime_rate:.1f}]"
         f" progression[xp={sim.research_points:.1f},tier={sim.expansion_level}]"
+        f" economy[cash=${sim.money},waste={sim.waste}]"
     )
 
 
@@ -486,7 +595,8 @@ class GameUI:
         dtext = (
             f"Deliveries: {len(self.sim.deliveries)} | Tech: ovens={int(self.sim.tech_tree['ovens'])} "
             f"bots={int(self.sim.tech_tree['bots'])} turbo={int(self.sim.tech_tree['turbo_belts'])} "
-            f"| XP: {self.sim.research_points:4.1f} | Expansion Tier: {self.sim.expansion_level}"
+            f"| XP: {self.sim.research_points:4.1f} | Tier: {self.sim.expansion_level} "
+            f"| Orders: {len(self.sim.orders)} | Cash: ${self.sim.money} | Waste: {self.sim.waste}"
         )
         self.screen.blit(self.small.render(dtext, True, (255, 236, 160)), (10, panel_y + 95))
 

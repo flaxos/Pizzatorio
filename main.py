@@ -34,6 +34,13 @@ DIRS = {
     3: (0, -1),
 }
 
+ITEM_STAGE_ORDER = ["raw", "processed", "baked"]
+PROCESS_FLOW = {
+    PROCESSOR: {"from": "raw", "to": "processed", "research_gain": 0.12},
+    OVEN: {"from": "processed", "to": "baked", "research_gain": 0.25},
+    BOT_DOCK: {"from": "baked", "to": "baked", "research_gain": 0.06, "delivery_boost": 1.2},
+}
+
 
 @dataclass
 class Tile:
@@ -47,7 +54,7 @@ class Item:
     x: int
     y: int
     progress: float = 0.0
-    stage: int = 0
+    stage: str = "raw"
     delivery_boost: float = 0.0
 
 
@@ -120,7 +127,7 @@ class FactorySim:
     def from_dict(cls, data: Dict) -> "FactorySim":
         sim = cls()
         sim.grid = [[Tile(**tile) for tile in row] for row in data["grid"]]
-        sim.items = [Item(**i) for i in data.get("items", [])]
+        sim.items = [Item(**cls._normalize_item_state(i)) for i in data.get("items", [])]
         sim.deliveries = [Delivery(**d) for d in data.get("deliveries", [])]
         sim.time = data.get("time", 0.0)
         sim.spawn_timer = data.get("spawn_timer", 0.0)
@@ -142,6 +149,15 @@ class FactorySim:
         sim.ontime = data.get("ontime", 0)
         sim.last_hygiene_event = data.get("last_hygiene_event", 0.0)
         return sim
+
+    @staticmethod
+    def _normalize_item_state(raw_item: Dict) -> Dict:
+        item = dict(raw_item)
+        legacy_stage = item.get("stage", "raw")
+        if isinstance(legacy_stage, int):
+            idx = int(clamp(float(legacy_stage), 0, len(ITEM_STAGE_ORDER) - 1))
+            item["stage"] = ITEM_STAGE_ORDER[idx]
+        return item
 
     def save(self, path: Path = SAVE_FILE) -> None:
         path.write_text(json.dumps(self.to_dict(), indent=2))
@@ -190,7 +206,7 @@ class FactorySim:
 
         if self.spawn_timer >= 1.8:
             self.spawn_timer = 0.0
-            self.items.append(Item(1, 7, 0.0, stage=0))
+            self.items.append(Item(1, 7, 0.0, stage="raw"))
 
         # hygiene events
         if self.time - self.last_hygiene_event > 14 and self.rng.random() < 0.015:
@@ -219,15 +235,12 @@ class FactorySim:
             nx, ny = item.x, item.y
 
             if tile.kind in (CONVEYOR, SOURCE, MACHINE, PROCESSOR, OVEN, BOT_DOCK):
-                if tile.kind in (MACHINE, PROCESSOR) and item.stage == 0:
-                    item.stage = 1
-                    self.research_points += 0.12
-                elif tile.kind == OVEN and item.stage == 1:
-                    item.stage = 2
-                    self.research_points += 0.25
-                elif tile.kind == BOT_DOCK and item.stage >= 2:
-                    item.delivery_boost = 1.2
-                    self.research_points += 0.06
+                flow = PROCESS_FLOW.get(tile.kind)
+                if flow and item.stage == flow["from"]:
+                    item.stage = flow["to"]
+                    self.research_points += flow["research_gain"]
+                    if "delivery_boost" in flow:
+                        item.delivery_boost = flow["delivery_boost"]
                 nx, ny = self._next_pos(item.x, item.y, tile.rot)
             elif tile.kind == EMPTY:
                 blocked += 1
@@ -236,7 +249,7 @@ class FactorySim:
                 continue
 
             ntile = self.grid[ny][nx]
-            if ntile.kind == SINK and item.stage >= 2:
+            if ntile.kind == SINK and item.stage == "baked":
                 self._enqueue_delivery()
                 if item.delivery_boost > 0:
                     self.deliveries[-1].remaining = max(1.5, self.deliveries[-1].remaining - item.delivery_boost)
@@ -446,9 +459,9 @@ class GameUI:
             px = item.x * CELL + CELL // 2
             py = item.y * CELL + CELL // 2
             colors = {
-                0: (219, 223, 235),
-                1: (255, 214, 126),
-                2: (255, 139, 94),
+                "raw": (219, 223, 235),
+                "processed": (255, 214, 126),
+                "baked": (255, 139, 94),
             }
             color = colors.get(item.stage, (255, 255, 255))
             pygame.draw.circle(self.screen, (30, 34, 45), (int(px), int(py)), 10)

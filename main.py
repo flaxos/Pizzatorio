@@ -209,10 +209,44 @@ class FactorySim:
     @classmethod
     def from_dict(cls, data: Dict) -> "FactorySim":
         sim = cls()
-        sim.grid = [[Tile(**tile) for tile in row] for row in data["grid"]]
-        sim.items = [Item(**cls._normalize_item_state(i)) for i in data.get("items", [])]
-        sim.deliveries = [Delivery(**cls._normalize_delivery_state(d)) for d in data.get("deliveries", [])]
-        sim.orders = [Order(**o) for o in data.get("orders", [])]
+        raw_grid = data.get("grid")
+        if isinstance(raw_grid, list) and len(raw_grid) == GRID_H and all(isinstance(row, list) and len(row) == GRID_W for row in raw_grid):
+            sim.grid = []
+            for row in raw_grid:
+                tile_row: List[Tile] = []
+                for raw_tile in row:
+                    if isinstance(raw_tile, dict):
+                        try:
+                            tile_row.append(
+                                Tile(
+                                    kind=str(raw_tile.get("kind", EMPTY)),
+                                    rot=int(raw_tile.get("rot", 0)),
+                                    hygiene_penalty=int(raw_tile.get("hygiene_penalty", 0)),
+                                )
+                            )
+                        except (TypeError, ValueError):
+                            tile_row.append(Tile())
+                    else:
+                        tile_row.append(Tile())
+                sim.grid.append(tile_row)
+
+        sim.items = []
+        for raw_item in data.get("items", []):
+            if not isinstance(raw_item, dict):
+                continue
+            sim.items.append(Item(**cls._normalize_item_state(raw_item)))
+
+        sim.deliveries = []
+        for raw_delivery in data.get("deliveries", []):
+            if not isinstance(raw_delivery, dict):
+                continue
+            sim.deliveries.append(Delivery(**cls._normalize_delivery_state(raw_delivery)))
+
+        sim.orders = []
+        for raw_order in data.get("orders", []):
+            if not isinstance(raw_order, dict):
+                continue
+            sim.orders.append(Order(**cls._normalize_order_state(raw_order)))
         sim.time = data.get("time", 0.0)
         sim.spawn_timer = data.get("spawn_timer", 0.0)
         sim.order_spawn_timer = data.get("order_spawn_timer", 0.0)
@@ -270,6 +304,22 @@ class FactorySim:
             "duration": float(delivery.get("duration", fallback_remaining)),
             "recipe_key": recipe_key,
             "reward": int(delivery.get("reward", RECIPES[recipe_key]["sell_price"])),
+        }
+
+    @staticmethod
+    def _normalize_order_state(raw_order: Dict) -> Dict:
+        order = dict(raw_order)
+        default_recipe = next(iter(RECIPES))
+        recipe_key = str(order.get("recipe_key", default_recipe))
+        if recipe_key not in RECIPES:
+            recipe_key = default_recipe
+        reward = int(order.get("reward", RECIPES[recipe_key]["sell_price"]))
+        total_sla = float(order.get("total_sla", RECIPES[recipe_key]["sla"]))
+        return {
+            "recipe_key": recipe_key,
+            "remaining_sla": float(order.get("remaining_sla", total_sla)),
+            "total_sla": total_sla,
+            "reward": reward,
         }
 
     def save(self, path: Path = SAVE_FILE) -> None:

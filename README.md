@@ -14,11 +14,13 @@ A lightweight factory/automation prototype designed to run in **Pydroid on Andro
   - `3` oven *(unlocks from research)*
   - `4` bot dock *(unlocks from research)*
   - `5` delete
-  - `R` rotate selected part
+  - `R` / `Q` / `E` rotate selected part
   - Left click to place/delete
 - Progression systems:
   - Tech tree unlocks (`ovens`, `bots`, `turbo belts`) driven by production XP.
   - Expansion tiers increase as your factory runs and fulfills demand.
+- UI scaffolding includes menu + submenu chips (`Build`, `Orders`, `R&D`, `Commercials`, `Info`) and quick order-channel context (`Delivery`, `Takeaway`, `Eat-in`) for the upcoming overhaul.
+- Landscape-aware layout adds a right-side operations panel on wide displays (including Pydroid landscape) to keep controls and metrics visible.
 - KPI panel updates live:
   - Bottleneck percentage
   - Hygiene percentage (random hygiene events + recovery)

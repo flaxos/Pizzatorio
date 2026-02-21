@@ -21,6 +21,7 @@ class RecipeDefinition:
     cook_time: float = 8.0
     cook_temp: str = "medium"
     difficulty: int = 1
+    demand_weight: float = 1.0
     base: str = "rolled_pizza_base"
     sauce: str = "tomato_sauce"
     cheese: str = "shredded_cheese"
@@ -36,6 +37,7 @@ class RecipeDefinition:
             "cook_time": self.cook_time,
             "cook_temp": self.cook_temp,
             "difficulty": self.difficulty,
+            "demand_weight": self.demand_weight,
             "base": self.base,
             "sauce": self.sauce,
             "cheese": self.cheese,
@@ -124,6 +126,7 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
     cook_time = entry.get("cook_time", 8.0)
     cook_temp = entry.get("cook_temp", "medium")
     difficulty = _coerce_int(entry.get("difficulty", 1), minimum=1)
+    demand_weight = entry.get("demand_weight", 1.0)
 
     if not isinstance(display_name, str) or not display_name.strip():
         return None
@@ -143,6 +146,8 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
     if cook_temp not in {"low", "medium", "high"}:
         return None
     if difficulty is None:
+        return None
+    if not _is_positive_number(demand_weight):
         return None
 
     base = entry.get("base", "rolled_pizza_base")
@@ -178,6 +183,7 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
         cook_time=float(cook_time),
         cook_temp=cook_temp,
         difficulty=difficulty,
+        demand_weight=float(demand_weight),
         base=base,
         sauce=sauce,
         cheese=cheese,

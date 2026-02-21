@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List
 
 RECIPES_FILE = Path("data/recipes.json")
+ITEM_ID_RE = re.compile(r"^[a-z][a-z0-9_]*$")
+MAX_TOPPINGS = 5
 
 
 @dataclass(frozen=True)
@@ -85,6 +88,10 @@ def _coerce_str_list(value: Any) -> tuple[str, ...] | None:
     return tuple(value)
 
 
+def _is_valid_item_id(value: str) -> bool:
+    return bool(ITEM_ID_RE.fullmatch(value))
+
+
 def _coerce_int(value: Any, *, minimum: int | None = None) -> int | None:
     if isinstance(value, bool):
         return None
@@ -134,10 +141,20 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
 
     if not isinstance(base, str) or not isinstance(sauce, str) or not isinstance(cheese, str):
         return None
+    if not _is_valid_item_id(base) or not _is_valid_item_id(sauce) or not _is_valid_item_id(cheese):
+        return None
 
     parsed_toppings = _coerce_str_list(toppings)
     parsed_post_oven = _coerce_str_list(post_oven)
     if parsed_toppings is None or parsed_post_oven is None:
+        return None
+    if not parsed_toppings or len(parsed_toppings) > MAX_TOPPINGS:
+        return None
+    if not all(_is_valid_item_id(item) for item in (*parsed_toppings, *parsed_post_oven)):
+        return None
+    if len(set(parsed_toppings)) != len(parsed_toppings):
+        return None
+    if set(parsed_toppings).intersection(parsed_post_oven):
         return None
 
     return RecipeDefinition(

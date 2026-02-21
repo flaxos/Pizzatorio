@@ -131,6 +131,68 @@ class RecipeCatalogTests(unittest.TestCase):
         self.assertNotIn("negative_tier", catalog)
         self.assertNotIn("fractional_difficulty", catalog)
 
+    def test_rejects_invalid_ingredient_ids_and_topping_constraints(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "recipes.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "bad_identifier": {
+                            "display_name": "Bad Identifier",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "base": "rolled-pizza-base",
+                            "toppings": ["fresh_basil"],
+                            "post_oven": [],
+                        },
+                        "duplicate_toppings": {
+                            "display_name": "Duplicate Toppings",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "toppings": ["fresh_basil", "fresh_basil"],
+                            "post_oven": [],
+                        },
+                        "too_many_toppings": {
+                            "display_name": "Too Many Toppings",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "toppings": ["a", "b", "c", "d", "e", "f"],
+                            "post_oven": [],
+                        },
+                        "shared_topping_post_oven": {
+                            "display_name": "Shared Ingredient",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "toppings": ["fresh_basil"],
+                            "post_oven": ["fresh_basil"],
+                        },
+                    }
+                )
+            )
+            catalog = load_recipe_catalog(path)
+
+        self.assertIn("margherita", catalog)
+        self.assertNotIn("bad_identifier", catalog)
+        self.assertNotIn("duplicate_toppings", catalog)
+        self.assertNotIn("too_many_toppings", catalog)
+        self.assertNotIn("shared_topping_post_oven", catalog)
+
 
 if __name__ == "__main__":
     unittest.main()

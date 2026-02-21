@@ -1,0 +1,38 @@
+{
+  "margherita": {
+    "display_name": "Margherita",
+    "sell_price": 12,
+    "sla": 11.0,
+    "unlock_tier": 0
+  },
+  "pepperoni": {
+    "display_name": "Pepperoni",
+    "sell_price": 15,
+    "sla": 10.0,
+    "unlock_tier": 1
+  },
+  "veggie": {
+    "display_name": "Veggie Deluxe",
+    "sell_price": 17,
+    "sla": 9.5,
+    "unlock_tier": 2
+  },
+  "hawaiian": {
+    "display_name": "Hawaiian",
+    "sell_price": 18,
+    "sla": 9.0,
+    "unlock_tier": 2
+  },
+  "meat_feast": {
+    "display_name": "Meat Feast",
+    "sell_price": 21,
+    "sla": 8.8,
+    "unlock_tier": 3
+  },
+  "garden_fresh": {
+    "display_name": "Garden Fresh",
+    "sell_price": 20,
+    "sla": 9.2,
+    "unlock_tier": 3
+  }
+}

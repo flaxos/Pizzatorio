@@ -15,6 +15,9 @@ class RecipeDefinition:
     sell_price: int
     sla: float
     unlock_tier: int
+    cook_time: float = 8.0
+    cook_temp: str = "medium"
+    difficulty: int = 1
     base: str = "rolled_pizza_base"
     sauce: str = "tomato_sauce"
     cheese: str = "shredded_cheese"
@@ -27,6 +30,9 @@ class RecipeDefinition:
             "sell_price": self.sell_price,
             "sla": self.sla,
             "unlock_tier": self.unlock_tier,
+            "cook_time": self.cook_time,
+            "cook_temp": self.cook_temp,
+            "difficulty": self.difficulty,
             "base": self.base,
             "sauce": self.sauce,
             "cheese": self.cheese,
@@ -42,6 +48,9 @@ DEFAULT_RECIPE_DEFINITIONS: Dict[str, RecipeDefinition] = {
         sell_price=12,
         sla=11.0,
         unlock_tier=0,
+        cook_time=8.0,
+        cook_temp="medium",
+        difficulty=1,
         cheese="sliced_mozzarella",
         toppings=("fresh_basil",),
     ),
@@ -51,6 +60,9 @@ DEFAULT_RECIPE_DEFINITIONS: Dict[str, RecipeDefinition] = {
         sell_price=15,
         sla=10.0,
         unlock_tier=1,
+        cook_time=7.5,
+        cook_temp="high",
+        difficulty=2,
         toppings=("sliced_pepperoni",),
     ),
     "veggie": RecipeDefinition(
@@ -59,6 +71,9 @@ DEFAULT_RECIPE_DEFINITIONS: Dict[str, RecipeDefinition] = {
         sell_price=17,
         sla=9.5,
         unlock_tier=2,
+        cook_time=8.2,
+        cook_temp="medium",
+        difficulty=2,
         toppings=("sliced_pepper", "sliced_mushroom", "diced_onion"),
     ),
 }
@@ -75,6 +90,9 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
     sell_price = entry.get("sell_price")
     sla = entry.get("sla")
     unlock_tier = entry.get("unlock_tier", 0)
+    cook_time = entry.get("cook_time", 8.0)
+    cook_temp = entry.get("cook_temp", "medium")
+    difficulty = entry.get("difficulty", 1)
 
     if not isinstance(display_name, str):
         return None
@@ -83,6 +101,14 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
     if not isinstance(sla, (int, float)) or sla <= 0:
         return None
     if not isinstance(unlock_tier, (int, float)):
+        return None
+    if not isinstance(cook_time, (int, float)) or cook_time <= 0:
+        return None
+    if not isinstance(cook_temp, str) or not cook_temp:
+        return None
+    if cook_temp not in {"low", "medium", "high"}:
+        return None
+    if not isinstance(difficulty, (int, float)) or difficulty <= 0:
         return None
 
     base = entry.get("base", "rolled_pizza_base")
@@ -105,6 +131,9 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
         sell_price=int(sell_price),
         sla=float(sla),
         unlock_tier=int(unlock_tier),
+        cook_time=float(cook_time),
+        cook_temp=cook_temp,
+        difficulty=int(difficulty),
         base=base,
         sauce=sauce,
         cheese=cheese,

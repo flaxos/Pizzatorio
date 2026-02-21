@@ -7,8 +7,13 @@
     "base": "rolled_pizza_base",
     "sauce": "tomato_sauce",
     "cheese": "sliced_mozzarella",
-    "toppings": ["fresh_basil"],
-    "post_oven": []
+    "toppings": [
+      "fresh_basil"
+    ],
+    "post_oven": [],
+    "cook_time": 8.0,
+    "cook_temp": "medium",
+    "difficulty": 1
   },
   "pepperoni": {
     "display_name": "Pepperoni",
@@ -18,8 +23,13 @@
     "base": "rolled_pizza_base",
     "sauce": "tomato_sauce",
     "cheese": "shredded_cheese",
-    "toppings": ["sliced_pepperoni"],
-    "post_oven": []
+    "toppings": [
+      "sliced_pepperoni"
+    ],
+    "post_oven": [],
+    "cook_time": 7.5,
+    "cook_temp": "high",
+    "difficulty": 2
   },
   "veggie": {
     "display_name": "Veggie Deluxe",
@@ -29,8 +39,15 @@
     "base": "rolled_pizza_base",
     "sauce": "tomato_sauce",
     "cheese": "shredded_cheese",
-    "toppings": ["sliced_pepper", "sliced_mushroom", "diced_onion"],
-    "post_oven": []
+    "toppings": [
+      "sliced_pepper",
+      "sliced_mushroom",
+      "diced_onion"
+    ],
+    "post_oven": [],
+    "cook_time": 8.2,
+    "cook_temp": "medium",
+    "difficulty": 2
   },
   "hawaiian": {
     "display_name": "Hawaiian",
@@ -40,8 +57,14 @@
     "base": "rolled_pizza_base",
     "sauce": "tomato_sauce",
     "cheese": "sliced_mozzarella",
-    "toppings": ["chopped_ham", "pineapple_chunks"],
-    "post_oven": []
+    "toppings": [
+      "chopped_ham",
+      "pineapple_chunks"
+    ],
+    "post_oven": [],
+    "cook_time": 8.4,
+    "cook_temp": "medium",
+    "difficulty": 2
   },
   "meat_feast": {
     "display_name": "Meat Feast",
@@ -51,8 +74,16 @@
     "base": "rolled_pizza_base",
     "sauce": "tomato_sauce",
     "cheese": "shredded_cheese",
-    "toppings": ["sliced_pepperoni", "chopped_ham", "bacon_strips", "sliced_sausage"],
-    "post_oven": []
+    "toppings": [
+      "sliced_pepperoni",
+      "chopped_ham",
+      "bacon_strips",
+      "sliced_sausage"
+    ],
+    "post_oven": [],
+    "cook_time": 9.0,
+    "cook_temp": "high",
+    "difficulty": 3
   },
   "garden_fresh": {
     "display_name": "Garden Fresh",
@@ -62,7 +93,17 @@
     "base": "rolled_pizza_base",
     "sauce": "tomato_sauce",
     "cheese": "shredded_cheese",
-    "toppings": ["sliced_pepper", "sliced_mushroom", "sliced_olives", "diced_onion"],
-    "post_oven": ["rocket_leaves"]
+    "toppings": [
+      "sliced_pepper",
+      "sliced_mushroom",
+      "sliced_olives",
+      "diced_onion"
+    ],
+    "post_oven": [
+      "rocket_leaves"
+    ],
+    "cook_time": 8.6,
+    "cook_temp": "medium",
+    "difficulty": 3
   }
 }

@@ -7,6 +7,7 @@ import time
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from recipe_catalog import load_recipe_catalog
 
 try:
     import pygame  # type: ignore
@@ -42,68 +43,7 @@ PROCESS_FLOW = {
     BOT_DOCK: {"from": "baked", "to": "baked", "research_gain": 0.06, "delivery_boost": 1.2},
 }
 
-DEFAULT_RECIPES = {
-    "margherita": {
-        "display_name": "Margherita",
-        "sell_price": 12,
-        "sla": 11.0,
-        "unlock_tier": 0,
-    },
-    "pepperoni": {
-        "display_name": "Pepperoni",
-        "sell_price": 15,
-        "sla": 10.0,
-        "unlock_tier": 1,
-    },
-    "veggie": {
-        "display_name": "Veggie Deluxe",
-        "sell_price": 17,
-        "sla": 9.5,
-        "unlock_tier": 2,
-    },
-}
-
-
-def load_recipe_catalog(path: Path = RECIPES_FILE) -> Dict[str, Dict[str, float | int | str]]:
-    if not path.exists():
-        return DEFAULT_RECIPES
-    try:
-        raw = json.loads(path.read_text())
-    except (json.JSONDecodeError, OSError):
-        return DEFAULT_RECIPES
-
-    if not isinstance(raw, dict):
-        return DEFAULT_RECIPES
-
-    recipes: Dict[str, Dict[str, float | int | str]] = {}
-    for key, entry in raw.items():
-        if not isinstance(key, str) or not isinstance(entry, dict):
-            continue
-
-        display_name = entry.get("display_name")
-        sell_price = entry.get("sell_price")
-        sla = entry.get("sla")
-        unlock_tier = entry.get("unlock_tier", 0)
-        if not isinstance(display_name, str):
-            continue
-        if not isinstance(sell_price, (int, float)) or sell_price <= 0:
-            continue
-        if not isinstance(sla, (int, float)) or sla <= 0:
-            continue
-        if not isinstance(unlock_tier, (int, float)):
-            continue
-
-        recipes[key] = {
-            "display_name": display_name,
-            "sell_price": int(sell_price),
-            "sla": float(sla),
-            "unlock_tier": int(unlock_tier),
-        }
-
-    return recipes or DEFAULT_RECIPES
-
-
-RECIPES = load_recipe_catalog()
+RECIPES = load_recipe_catalog(RECIPES_FILE)
 
 
 @dataclass

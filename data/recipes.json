@@ -3,36 +3,66 @@
     "display_name": "Margherita",
     "sell_price": 12,
     "sla": 11.0,
-    "unlock_tier": 0
+    "unlock_tier": 0,
+    "base": "rolled_pizza_base",
+    "sauce": "tomato_sauce",
+    "cheese": "sliced_mozzarella",
+    "toppings": ["fresh_basil"],
+    "post_oven": []
   },
   "pepperoni": {
     "display_name": "Pepperoni",
     "sell_price": 15,
     "sla": 10.0,
-    "unlock_tier": 1
+    "unlock_tier": 1,
+    "base": "rolled_pizza_base",
+    "sauce": "tomato_sauce",
+    "cheese": "shredded_cheese",
+    "toppings": ["sliced_pepperoni"],
+    "post_oven": []
   },
   "veggie": {
     "display_name": "Veggie Deluxe",
     "sell_price": 17,
     "sla": 9.5,
-    "unlock_tier": 2
+    "unlock_tier": 2,
+    "base": "rolled_pizza_base",
+    "sauce": "tomato_sauce",
+    "cheese": "shredded_cheese",
+    "toppings": ["sliced_pepper", "sliced_mushroom", "diced_onion"],
+    "post_oven": []
   },
   "hawaiian": {
     "display_name": "Hawaiian",
     "sell_price": 18,
     "sla": 9.0,
-    "unlock_tier": 2
+    "unlock_tier": 2,
+    "base": "rolled_pizza_base",
+    "sauce": "tomato_sauce",
+    "cheese": "sliced_mozzarella",
+    "toppings": ["chopped_ham", "pineapple_chunks"],
+    "post_oven": []
   },
   "meat_feast": {
     "display_name": "Meat Feast",
     "sell_price": 21,
     "sla": 8.8,
-    "unlock_tier": 3
+    "unlock_tier": 3,
+    "base": "rolled_pizza_base",
+    "sauce": "tomato_sauce",
+    "cheese": "shredded_cheese",
+    "toppings": ["sliced_pepperoni", "chopped_ham", "bacon_strips", "sliced_sausage"],
+    "post_oven": []
   },
   "garden_fresh": {
     "display_name": "Garden Fresh",
     "sell_price": 20,
     "sla": 9.2,
-    "unlock_tier": 3
+    "unlock_tier": 3,
+    "base": "rolled_pizza_base",
+    "sauce": "tomato_sauce",
+    "cheese": "shredded_cheese",
+    "toppings": ["sliced_pepper", "sliced_mushroom", "sliced_olives", "diced_onion"],
+    "post_oven": ["rocket_leaves"]
   }
 }

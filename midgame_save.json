@@ -1,0 +1,1635 @@
+{
+  "grid": [
+    [
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      }
+    ],
+    [
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      }
+    ],
+    [
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      }
+    ],
+    [
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      }
+    ],
+    [
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      }
+    ],
+    [
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      }
+    ],
+    [
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      }
+    ],
+    [
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "source",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "machine",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "sink",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      }
+    ],
+    [
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      }
+    ],
+    [
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      }
+    ],
+    [
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      }
+    ],
+    [
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      }
+    ],
+    [
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      }
+    ],
+    [
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      }
+    ],
+    [
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "empty",
+        "rot": 0,
+        "hygiene_penalty": 0
+      }
+    ]
+  ],
+  "items": [
+    {
+      "x": 17,
+      "y": 7,
+      "progress": 0.4,
+      "cooked": true
+    },
+    {
+      "x": 15,
+      "y": 7,
+      "progress": 0.7999999999999999,
+      "cooked": true
+    },
+    {
+      "x": 14,
+      "y": 7,
+      "progress": 0.0,
+      "cooked": true
+    },
+    {
+      "x": 12,
+      "y": 7,
+      "progress": 0.4,
+      "cooked": true
+    },
+    {
+      "x": 10,
+      "y": 7,
+      "progress": 0.7999999999999999,
+      "cooked": true
+    },
+    {
+      "x": 9,
+      "y": 7,
+      "progress": 0.24339777010067282,
+      "cooked": false
+    },
+    {
+      "x": 7,
+      "y": 7,
+      "progress": 0.7,
+      "cooked": false
+    },
+    {
+      "x": 6,
+      "y": 7,
+      "progress": 0.0,
+      "cooked": false
+    },
+    {
+      "x": 4,
+      "y": 7,
+      "progress": 0.4,
+      "cooked": false
+    },
+    {
+      "x": 2,
+      "y": 7,
+      "progress": 0.7999999999999999,
+      "cooked": false
+    },
+    {
+      "x": 1,
+      "y": 7,
+      "progress": 0.1,
+      "cooked": false
+    }
+  ],
+  "deliveries": [
+    {
+      "mode": "drone",
+      "remaining": 0.7957950342777432,
+      "sla": 8.0,
+      "duration": 7.2957950342777345
+    },
+    {
+      "mode": "scooter",
+      "remaining": 4.939326803045333,
+      "sla": 11.0,
+      "duration": 9.739326803045316
+    },
+    {
+      "mode": "scooter",
+      "remaining": 5.25467236519928,
+      "sla": 11.0,
+      "duration": 8.25467236519927
+    },
+    {
+      "mode": "drone",
+      "remaining": 5.5850971679652375,
+      "sla": 8.0,
+      "duration": 6.785097167965233
+    }
+  ],
+  "time": 45.00000000000037,
+  "spawn_timer": 0.0,
+  "hygiene": 79.52669807382672,
+  "bottleneck": 0,
+  "completed": 10,
+  "ontime": 10,
+  "last_hygiene_event": 38.50000000000028
+}

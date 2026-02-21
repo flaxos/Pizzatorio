@@ -130,6 +130,30 @@ class RecipeCatalogTests(unittest.TestCase):
         self.assertEqual("high", catalog["normalized_temp"]["cook_temp"])
         self.assertNotIn("blank_name", catalog)
 
+    def test_trims_display_name(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "recipes.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "trimmed_name": {
+                            "display_name": "  Trimmed  ",
+                            "sell_price": 11,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        }
+                    }
+                )
+            )
+            catalog = load_recipe_catalog(path)
+
+        self.assertEqual("Trimmed", catalog["trimmed_name"]["display_name"])
+
     def test_rejects_non_integral_tier_and_difficulty_values(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "recipes.json"
@@ -354,6 +378,17 @@ class RecipeCatalogTests(unittest.TestCase):
                             "toppings": ["fresh_basil"],
                             "post_oven": ["fresh_basil"],
                         },
+                        "duplicate_post_oven": {
+                            "display_name": "Duplicate Post Oven",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "toppings": ["fresh_basil"],
+                            "post_oven": ["rocket_leaves", "rocket_leaves"],
+                        },
                     }
                 )
             )
@@ -364,6 +399,7 @@ class RecipeCatalogTests(unittest.TestCase):
         self.assertNotIn("duplicate_toppings", catalog)
         self.assertNotIn("too_many_toppings", catalog)
         self.assertNotIn("shared_topping_post_oven", catalog)
+        self.assertNotIn("duplicate_post_oven", catalog)
 
     def test_catalog_order_is_deterministic_by_tier_then_key(self):
         with tempfile.TemporaryDirectory() as tmpdir:

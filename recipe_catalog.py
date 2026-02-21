@@ -85,14 +85,29 @@ def _coerce_str_list(value: Any) -> tuple[str, ...] | None:
     return tuple(value)
 
 
+def _coerce_int(value: Any, *, minimum: int | None = None) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        result = value
+    elif isinstance(value, float) and value.is_integer():
+        result = int(value)
+    else:
+        return None
+
+    if minimum is not None and result < minimum:
+        return None
+    return result
+
+
 def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | None:
     display_name = entry.get("display_name")
     sell_price = entry.get("sell_price")
     sla = entry.get("sla")
-    unlock_tier = entry.get("unlock_tier", 0)
+    unlock_tier = _coerce_int(entry.get("unlock_tier", 0), minimum=0)
     cook_time = entry.get("cook_time", 8.0)
     cook_temp = entry.get("cook_temp", "medium")
-    difficulty = entry.get("difficulty", 1)
+    difficulty = _coerce_int(entry.get("difficulty", 1), minimum=1)
 
     if not isinstance(display_name, str):
         return None
@@ -100,7 +115,7 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
         return None
     if not isinstance(sla, (int, float)) or sla <= 0:
         return None
-    if not isinstance(unlock_tier, (int, float)):
+    if unlock_tier is None:
         return None
     if not isinstance(cook_time, (int, float)) or cook_time <= 0:
         return None
@@ -108,7 +123,7 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
         return None
     if cook_temp not in {"low", "medium", "high"}:
         return None
-    if not isinstance(difficulty, (int, float)) or difficulty <= 0:
+    if difficulty is None:
         return None
 
     base = entry.get("base", "rolled_pizza_base")
@@ -130,10 +145,10 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
         display_name=display_name,
         sell_price=int(sell_price),
         sla=float(sla),
-        unlock_tier=int(unlock_tier),
+        unlock_tier=unlock_tier,
         cook_time=float(cook_time),
         cook_temp=cook_temp,
-        difficulty=int(difficulty),
+        difficulty=difficulty,
         base=base,
         sauce=sauce,
         cheese=cheese,

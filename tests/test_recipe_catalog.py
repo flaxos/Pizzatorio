@@ -82,6 +82,55 @@ class RecipeCatalogTests(unittest.TestCase):
         self.assertNotIn("bad_temp", catalog)
         self.assertNotIn("bad_time", catalog)
 
+    def test_rejects_non_integral_tier_and_difficulty_values(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "recipes.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "fractional_tier": {
+                            "display_name": "Fractional Tier",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 1.5,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                        "negative_tier": {
+                            "display_name": "Negative Tier",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": -1,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                        "fractional_difficulty": {
+                            "display_name": "Fractional Difficulty",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "low",
+                            "difficulty": 2.5,
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                    }
+                )
+            )
+            catalog = load_recipe_catalog(path)
+
+        self.assertIn("margherita", catalog)
+        self.assertNotIn("fractional_tier", catalog)
+        self.assertNotIn("negative_tier", catalog)
+        self.assertNotIn("fractional_difficulty", catalog)
+
 
 if __name__ == "__main__":
     unittest.main()

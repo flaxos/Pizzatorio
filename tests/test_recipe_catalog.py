@@ -278,6 +278,52 @@ class RecipeCatalogTests(unittest.TestCase):
         self.assertNotIn("too_many_toppings", catalog)
         self.assertNotIn("shared_topping_post_oven", catalog)
 
+    def test_catalog_order_is_deterministic_by_tier_then_key(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "recipes.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "z_tier_zero": {
+                            "display_name": "Z Zero",
+                            "sell_price": 11,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "low",
+                            "difficulty": 1,
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                        "a_tier_one": {
+                            "display_name": "A One",
+                            "sell_price": 11,
+                            "sla": 5,
+                            "unlock_tier": 1,
+                            "cook_time": 8,
+                            "cook_temp": "low",
+                            "difficulty": 1,
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                        "a_tier_zero": {
+                            "display_name": "A Zero",
+                            "sell_price": 11,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "low",
+                            "difficulty": 1,
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                    }
+                )
+            )
+            catalog = load_recipe_catalog(path)
+
+        self.assertEqual(["a_tier_zero", "z_tier_zero", "a_tier_one"], list(catalog.keys()))
+
 
 if __name__ == "__main__":
     unittest.main()

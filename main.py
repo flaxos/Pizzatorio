@@ -489,8 +489,17 @@ class GameUI:
             raise RuntimeError("pygame is required for graphical mode")
         pygame.init()
         self.sim = sim
-        self.panel_h = 170
-        self.screen = pygame.display.set_mode((GRID_W * CELL, GRID_H * CELL + self.panel_h))
+        self.grid_px_w = GRID_W * CELL
+        self.grid_px_h = GRID_H * CELL
+        self.panel_h = 190
+
+        display = pygame.display.Info()
+        self.landscape = display.current_w >= display.current_h
+        self.sidebar_w = 340 if self.landscape else 0
+        self.window_w = self.grid_px_w + self.sidebar_w
+        self.window_h = self.grid_px_h + self.panel_h
+
+        self.screen = pygame.display.set_mode((self.window_w, self.window_h))
         pygame.display.set_caption("Pizzatorio Factory")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("arial", 22)
@@ -499,6 +508,18 @@ class GameUI:
         self.selected = CONVEYOR
         self.rotation = 0
 
+        self.main_sections = ["Build", "Orders", "R&D", "Commercials", "Info"]
+        self.subsections = {
+            "Build": ["Belts", "Machines", "Utilities"],
+            "Orders": ["Delivery", "Takeaway", "Eat-in"],
+            "R&D": ["Tech tree", "Queued", "Upgrades"],
+            "Commercials": ["Campaigns", "Promos", "Franchise"],
+            "Info": ["KPIs", "Logs", "Economy"],
+        }
+        self.active_section = "Build"
+        self.active_subsection = self.subsections[self.active_section][0]
+        self.order_channel = "delivery"
+
         self.palette = {
             "bg": (12, 15, 24),
             "panel": (20, 25, 38),
@@ -506,7 +527,68 @@ class GameUI:
             "grid_line": (38, 45, 62),
             "text": (230, 236, 248),
             "muted": (161, 177, 205),
+            "accent": (97, 167, 255),
+            "chip": (30, 38, 55),
+            "chip_active": (59, 93, 156),
         }
+
+    def _set_section(self, section: str) -> None:
+        if section not in self.main_sections:
+            return
+        self.active_section = section
+        self.active_subsection = self.subsections[section][0]
+
+    def _cycle_section(self) -> None:
+        idx = self.main_sections.index(self.active_section)
+        self._set_section(self.main_sections[(idx + 1) % len(self.main_sections)])
+
+    def _set_subsection(self, subsection: str) -> None:
+        if subsection in self.subsections.get(self.active_section, []):
+            self.active_subsection = subsection
+            if self.active_section == "Orders":
+                self.order_channel = subsection.lower()
+
+    def _ui_rects(self) -> Dict[str, List[Tuple[pygame.Rect, str]]]:
+        top_y = self.grid_px_h + 8
+        x = 10
+        sections: List[Tuple[pygame.Rect, str]] = []
+        for section in self.main_sections:
+            rect = pygame.Rect(x, top_y, 112, 30)
+            sections.append((rect, section))
+            x += 118
+
+        sub_y = top_y + 38
+        x = 10
+        subs: List[Tuple[pygame.Rect, str]] = []
+        for subsection in self.subsections[self.active_section]:
+            rect = pygame.Rect(x, sub_y, 146, 28)
+            subs.append((rect, subsection))
+            x += 152
+
+        return {"sections": sections, "subsections": subs}
+
+    def _toolbar_rects(self) -> List[Tuple[pygame.Rect, str]]:
+        y = self.grid_px_h + 78
+        labels = ["1 Conveyor", "2 Processor", "3 Oven", "4 Bot Dock", "5 Delete", "R Rotate", "Q/E Rot ±"]
+        rects = []
+        x = 10
+        for label in labels:
+            w = max(86, len(label) * 8 + 20)
+            rects.append((pygame.Rect(x, y, w, 30), label))
+            x += w + 8
+        return rects
+
+    def _handle_click(self, mx: int, my: int) -> bool:
+        ui_rects = self._ui_rects()
+        for rect, section in ui_rects["sections"]:
+            if rect.collidepoint(mx, my):
+                self._set_section(section)
+                return True
+        for rect, subsection in ui_rects["subsections"]:
+            if rect.collidepoint(mx, my):
+                self._set_subsection(subsection)
+                return True
+        return False
 
     def handle_input(self) -> None:
         for ev in pygame.event.get():
@@ -523,16 +605,32 @@ class GameUI:
                     self.selected = BOT_DOCK
                 elif ev.key == pygame.K_5:
                     self.selected = EMPTY
-                elif ev.key == pygame.K_r:
+                elif ev.key == pygame.K_r or ev.key == pygame.K_e:
                     self.rotation = (self.rotation + 1) % 4
+                elif ev.key == pygame.K_q:
+                    self.rotation = (self.rotation - 1) % 4
+                elif ev.key == pygame.K_TAB:
+                    self._cycle_section()
+                elif ev.key == pygame.K_F1:
+                    self._set_section("Build")
+                elif ev.key == pygame.K_F2:
+                    self._set_section("Orders")
+                elif ev.key == pygame.K_F3:
+                    self._set_section("R&D")
+                elif ev.key == pygame.K_F4:
+                    self._set_section("Commercials")
+                elif ev.key == pygame.K_F5:
+                    self._set_section("Info")
                 elif ev.key == pygame.K_s:
                     self.sim.save()
                 elif ev.key == pygame.K_l and SAVE_FILE.exists():
                     self.sim = FactorySim.load()
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
                 x, y = pygame.mouse.get_pos()
-                gx, gy = x // CELL, y // CELL
-                if gy < GRID_H:
+                if y >= self.grid_px_h and self._handle_click(x, y):
+                    continue
+                if x < self.grid_px_w and y < self.grid_px_h:
+                    gx, gy = x // CELL, y // CELL
                     self.sim.place_tile(gx, gy, self.selected, self.rotation)
 
     def _tile_base_color(self, kind: str) -> Tuple[int, int, int]:
@@ -589,6 +687,41 @@ class GameUI:
         fill = pygame.Rect(bar_bg.x, bar_bg.y, int(bar_bg.w * clamp(value / 100.0, 0.0, 1.0)), bar_bg.h)
         pygame.draw.rect(self.screen, hue, fill, border_radius=8)
 
+    def _draw_chip(self, rect: pygame.Rect, label: str, active: bool) -> None:
+        bg = self.palette["chip_active"] if active else self.palette["chip"]
+        pygame.draw.rect(self.screen, bg, rect, border_radius=8)
+        pygame.draw.rect(self.screen, self.palette["panel_border"], rect, width=1, border_radius=8)
+        self.screen.blit(self.small.render(label, True, self.palette["text"]), (rect.x + 8, rect.y + 6))
+
+    def _draw_sidebar(self) -> None:
+        if self.sidebar_w <= 0:
+            return
+        panel = pygame.Rect(self.grid_px_w, 0, self.sidebar_w, self.window_h)
+        pygame.draw.rect(self.screen, (16, 21, 33), panel)
+        pygame.draw.line(self.screen, self.palette["panel_border"], (self.grid_px_w, 0), (self.grid_px_w, self.window_h), 2)
+
+        y = 14
+        self.screen.blit(self.font.render("Landscape Ops", True, self.palette["text"]), (self.grid_px_w + 14, y))
+        y += 34
+        rows = [
+            f"Menu: {self.active_section}",
+            f"Sub-menu: {self.active_subsection}",
+            f"Order channel: {self.order_channel}",
+            f"Selected tool: {self.selected}",
+            f"Rotation: {self.rotation}",
+            f"Orders pending: {len(self.sim.orders)}",
+            f"Deliveries active: {len(self.sim.deliveries)}",
+        ]
+        for row in rows:
+            self.screen.blit(self.small.render(row, True, self.palette["muted"]), (self.grid_px_w + 14, y))
+            y += 25
+
+        card_y = y + 8
+        card_w = self.sidebar_w - 28
+        self._draw_metric_card(self.grid_px_w + 14, card_y, card_w, "On-time Throughput", self.sim.ontime_rate, (106, 212, 148))
+        self._draw_metric_card(self.grid_px_w + 14, card_y + 64, card_w, "Bottleneck", self.sim.bottleneck, (242, 186, 88))
+        self._draw_metric_card(self.grid_px_w + 14, card_y + 128, card_w, "Hygiene", self.sim.hygiene, (101, 189, 255))
+
     def draw_tile(self, x: int, y: int, tile: Tile) -> None:
         rect = pygame.Rect(x * CELL + 1, y * CELL + 1, CELL - 2, CELL - 2)
         base = self._tile_base_color(tile.kind)
@@ -607,9 +740,9 @@ class GameUI:
                 self.draw_tile(x, y, self.sim.grid[y][x])
 
         for x in range(GRID_W + 1):
-            pygame.draw.line(self.screen, self.palette["grid_line"], (x * CELL, 0), (x * CELL, GRID_H * CELL), 1)
+            pygame.draw.line(self.screen, self.palette["grid_line"], (x * CELL, 0), (x * CELL, self.grid_px_h), 1)
         for y in range(GRID_H + 1):
-            pygame.draw.line(self.screen, self.palette["grid_line"], (0, y * CELL), (GRID_W * CELL, y * CELL), 1)
+            pygame.draw.line(self.screen, self.palette["grid_line"], (0, y * CELL), (self.grid_px_w, y * CELL), 1)
 
         for item in self.sim.items:
             px = item.x * CELL + CELL // 2
@@ -623,30 +756,33 @@ class GameUI:
             pygame.draw.circle(self.screen, (30, 34, 45), (int(px), int(py)), 10)
             pygame.draw.circle(self.screen, color, (int(px), int(py)), 7)
 
-        panel = pygame.Rect(0, GRID_H * CELL, GRID_W * CELL, self.panel_h)
+        panel = pygame.Rect(0, self.grid_px_h, self.grid_px_w, self.panel_h)
         pygame.draw.rect(self.screen, self.palette["panel"], panel)
         pygame.draw.line(self.screen, self.palette["panel_border"], panel.topleft, panel.topright, 2)
 
-        panel_y = GRID_H * CELL + 10
-        text = (
-            f"Tool: {'DEL' if self.selected == EMPTY else self.selected.upper()} | Rot: {self.rotation} "
-            f"(1 conveyor, 2 processor, 3 oven, 4 bot dock, 5 delete, R rotate, S save, L load)"
-        )
-        self.screen.blit(self.small.render(text, True, self.palette["text"]), (10, panel_y))
+        ui_rects = self._ui_rects()
+        for rect, section in ui_rects["sections"]:
+            self._draw_chip(rect, section, section == self.active_section)
+        for rect, subsection in ui_rects["subsections"]:
+            self._draw_chip(rect, subsection, subsection == self.active_subsection)
 
-        card_w = (GRID_W * CELL - 40) // 3
-        self._draw_metric_card(10, panel_y + 28, card_w, "On-time Throughput", self.sim.ontime_rate, (106, 212, 148))
-        self._draw_metric_card(20 + card_w, panel_y + 28, card_w, "Bottleneck", self.sim.bottleneck, (242, 186, 88))
-        self._draw_metric_card(30 + card_w * 2, panel_y + 28, card_w, "Hygiene", self.sim.hygiene, (101, 189, 255))
+        for rect, label in self._toolbar_rects():
+            active = (
+                ("Conveyor" in label and self.selected == CONVEYOR)
+                or ("Processor" in label and self.selected == PROCESSOR)
+                or ("Oven" in label and self.selected == OVEN)
+                or ("Bot Dock" in label and self.selected == BOT_DOCK)
+                or ("Delete" in label and self.selected == EMPTY)
+            )
+            self._draw_chip(rect, label, active)
 
         dtext = (
-            f"Deliveries: {len(self.sim.deliveries)} | Tech: ovens={int(self.sim.tech_tree['ovens'])} "
-            f"bots={int(self.sim.tech_tree['bots'])} turbo={int(self.sim.tech_tree['turbo_belts'])} "
-            f"| XP: {self.sim.research_points:4.1f} | Tier: {self.sim.expansion_level} "
-            f"| Orders: {len(self.sim.orders)} | Cash: ${self.sim.money} | Waste: {self.sim.waste}"
+            f"Tool={self.selected.upper()} Rot={self.rotation} | Menu={self.active_section}/{self.active_subsection} "
+            f"| Orders={len(self.sim.orders)} Deliveries={len(self.sim.deliveries)} Cash=${self.sim.money}"
         )
-        self.screen.blit(self.small.render(dtext, True, (255, 236, 160)), (10, panel_y + 95))
+        self.screen.blit(self.small.render(dtext, True, (255, 236, 160)), (10, self.grid_px_h + 150))
 
+        self._draw_sidebar()
         pygame.display.flip()
 
     def run(self) -> None:
@@ -656,6 +792,7 @@ class GameUI:
             self.sim.tick(dt)
             self.draw()
         pygame.quit()
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Pizzatorio factory prototype")

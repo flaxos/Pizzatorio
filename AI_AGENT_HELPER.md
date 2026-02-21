@@ -45,6 +45,15 @@ The prototype is a single monolithic `main.py` (~single file). It already has:
 
 ---
 
+
+### Recent UI Scaffolding Direction (Pydroid + Landscape)
+
+- Add a **menu + submenu shell** in the in-game HUD for: `Build`, `Orders`, `R&D`, `Commercials`, and `Info`.
+- Ensure `Orders` exposes channels for `Delivery`, `Takeaway`, and `Eat-in` as selectable UI context.
+- Add direct **rotation controls** beyond keyboard-only flow (e.g., visible rotation actions in toolbar/chips).
+- Prefer a **landscape-first layout** on Pydroid: keep grid unobstructed, move dense status/action controls into a right-side operations panel when aspect ratio is wide.
+- This scaffolding is a structural UI phase; each menu can start with placeholders, then wire real gameplay systems progressively.
+
 ## 3. GAME VISION — THE FULL LOOP
 
 ### 3.1 One-Sentence Pitch

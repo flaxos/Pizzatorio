@@ -107,6 +107,12 @@ def _coerce_int(value: Any, *, minimum: int | None = None) -> int | None:
     return result
 
 
+def _is_positive_number(value: Any) -> bool:
+    if isinstance(value, bool):
+        return False
+    return isinstance(value, (int, float)) and value > 0
+
+
 def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | None:
     if not _is_valid_item_id(key):
         return None
@@ -123,11 +129,11 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
         return None
     if sell_price is None:
         return None
-    if not isinstance(sla, (int, float)) or sla <= 0:
+    if not _is_positive_number(sla):
         return None
     if unlock_tier is None:
         return None
-    if not isinstance(cook_time, (int, float)) or cook_time <= 0:
+    if not _is_positive_number(cook_time):
         return None
     if not isinstance(cook_temp, str) or not cook_temp:
         return None

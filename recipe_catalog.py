@@ -125,7 +125,7 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
     cook_temp = entry.get("cook_temp", "medium")
     difficulty = _coerce_int(entry.get("difficulty", 1), minimum=1)
 
-    if not isinstance(display_name, str):
+    if not isinstance(display_name, str) or not display_name.strip():
         return None
     if sell_price is None:
         return None
@@ -135,7 +135,10 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
         return None
     if not _is_positive_number(cook_time):
         return None
-    if not isinstance(cook_temp, str) or not cook_temp:
+    if not isinstance(cook_temp, str):
+        return None
+    cook_temp = cook_temp.strip().lower()
+    if not cook_temp:
         return None
     if cook_temp not in {"low", "medium", "high"}:
         return None

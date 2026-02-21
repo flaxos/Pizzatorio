@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -112,7 +113,7 @@ def _coerce_int(value: Any, *, minimum: int | None = None) -> int | None:
 def _is_positive_number(value: Any) -> bool:
     if isinstance(value, bool):
         return False
-    return isinstance(value, (int, float)) and value > 0
+    return isinstance(value, (int, float)) and math.isfinite(value) and value > 0
 
 
 def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | None:

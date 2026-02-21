@@ -448,5 +448,44 @@ class RecipeCatalogTests(unittest.TestCase):
         self.assertEqual(["a_tier_zero", "z_tier_zero", "a_tier_one"], list(catalog.keys()))
 
 
+    def test_rejects_non_finite_numeric_fields(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "recipes.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "inf_sla": {
+                            "display_name": "Infinite SLA",
+                            "sell_price": 10,
+                            "sla": float("inf"),
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                        "inf_weight": {
+                            "display_name": "Infinite Weight",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "demand_weight": float("inf"),
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                    }
+                )
+            )
+            catalog = load_recipe_catalog(path)
+
+        self.assertIn("margherita", catalog)
+        self.assertNotIn("inf_sla", catalog)
+        self.assertNotIn("inf_weight", catalog)
+
+
 if __name__ == "__main__":
     unittest.main()

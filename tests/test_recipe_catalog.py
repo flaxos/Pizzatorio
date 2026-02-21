@@ -7,6 +7,17 @@ from recipe_catalog import load_recipe_catalog
 
 
 class RecipeCatalogTests(unittest.TestCase):
+    def test_repository_recipe_catalog_has_expected_scale_and_progression(self):
+        catalog = load_recipe_catalog(Path("data/recipes.json"))
+
+        self.assertGreaterEqual(len(catalog), 20)
+        tiers = {recipe["unlock_tier"] for recipe in catalog.values()}
+        self.assertTrue({0, 1, 2, 3, 4, 5}.issubset(tiers))
+
+        for recipe in catalog.values():
+            self.assertLessEqual(len(recipe["toppings"]), 5)
+            self.assertGreaterEqual(recipe["difficulty"], 1)
+
     def test_loads_defaults_when_file_missing(self):
         catalog = load_recipe_catalog(Path("does_not_exist.json"))
         self.assertIn("margherita", catalog)

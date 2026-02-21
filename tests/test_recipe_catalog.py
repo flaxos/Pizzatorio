@@ -142,6 +142,43 @@ class RecipeCatalogTests(unittest.TestCase):
         self.assertNotIn("negative_tier", catalog)
         self.assertNotIn("fractional_difficulty", catalog)
 
+    def test_rejects_boolean_numeric_fields(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "recipes.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "bool_sla": {
+                            "display_name": "Boolean SLA",
+                            "sell_price": 10,
+                            "sla": True,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                        "bool_cook_time": {
+                            "display_name": "Boolean Cook Time",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": True,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                    }
+                )
+            )
+            catalog = load_recipe_catalog(path)
+
+        self.assertIn("margherita", catalog)
+        self.assertNotIn("bool_sla", catalog)
+        self.assertNotIn("bool_cook_time", catalog)
+
     def test_rejects_invalid_recipe_keys_and_sell_price_types(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "recipes.json"

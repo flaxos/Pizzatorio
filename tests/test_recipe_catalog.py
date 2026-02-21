@@ -93,6 +93,43 @@ class RecipeCatalogTests(unittest.TestCase):
         self.assertNotIn("bad_temp", catalog)
         self.assertNotIn("bad_time", catalog)
 
+    def test_normalizes_cook_temp_and_rejects_blank_display_name(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "recipes.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "normalized_temp": {
+                            "display_name": "Normalized Temp",
+                            "sell_price": 11,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": " HIGH ",
+                            "difficulty": 1,
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                        "blank_name": {
+                            "display_name": "   ",
+                            "sell_price": 11,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                    }
+                )
+            )
+            catalog = load_recipe_catalog(path)
+
+        self.assertIn("normalized_temp", catalog)
+        self.assertEqual("high", catalog["normalized_temp"]["cook_temp"])
+        self.assertNotIn("blank_name", catalog)
+
     def test_rejects_non_integral_tier_and_difficulty_values(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "recipes.json"

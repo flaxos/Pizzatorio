@@ -308,7 +308,8 @@ class FactorySim:
         available = self._available_recipes()
         if not available:
             return
-        key = self.rng.choice(available)
+        weights = [max(0.01, float(RECIPES[key].get("demand_weight", 1.0))) for key in available]
+        key = self.rng.choices(available, weights=weights, k=1)[0]
         recipe = RECIPES[key]
         self.orders.append(
             Order(

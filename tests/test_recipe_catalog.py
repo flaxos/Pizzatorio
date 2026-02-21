@@ -216,6 +216,56 @@ class RecipeCatalogTests(unittest.TestCase):
         self.assertNotIn("bool_sla", catalog)
         self.assertNotIn("bool_cook_time", catalog)
 
+    def test_demand_weight_defaults_and_validation(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "recipes.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "default_weight": {
+                            "display_name": "Default Weight",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                        "custom_weight": {
+                            "display_name": "Custom Weight",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "demand_weight": 2.25,
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                        "invalid_weight": {
+                            "display_name": "Invalid Weight",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "demand_weight": 0,
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                    }
+                )
+            )
+            catalog = load_recipe_catalog(path)
+
+        self.assertEqual(1.0, catalog["default_weight"]["demand_weight"])
+        self.assertEqual(2.25, catalog["custom_weight"]["demand_weight"])
+        self.assertNotIn("invalid_weight", catalog)
+
     def test_rejects_invalid_recipe_keys_and_sell_price_types(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "recipes.json"

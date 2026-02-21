@@ -142,6 +142,43 @@ class RecipeCatalogTests(unittest.TestCase):
         self.assertNotIn("negative_tier", catalog)
         self.assertNotIn("fractional_difficulty", catalog)
 
+    def test_rejects_invalid_recipe_keys_and_sell_price_types(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "recipes.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "bad-key": {
+                            "display_name": "Bad Key",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "toppings": ["fresh_basil"],
+                            "post_oven": [],
+                        },
+                        "fractional_price": {
+                            "display_name": "Fractional Price",
+                            "sell_price": 10.5,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "toppings": ["fresh_basil"],
+                            "post_oven": [],
+                        },
+                    }
+                )
+            )
+            catalog = load_recipe_catalog(path)
+
+        self.assertIn("margherita", catalog)
+        self.assertNotIn("bad-key", catalog)
+        self.assertNotIn("fractional_price", catalog)
+
     def test_rejects_invalid_ingredient_ids_and_topping_constraints(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "recipes.json"

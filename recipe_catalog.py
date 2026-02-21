@@ -108,8 +108,11 @@ def _coerce_int(value: Any, *, minimum: int | None = None) -> int | None:
 
 
 def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | None:
+    if not _is_valid_item_id(key):
+        return None
+
     display_name = entry.get("display_name")
-    sell_price = entry.get("sell_price")
+    sell_price = _coerce_int(entry.get("sell_price"), minimum=1)
     sla = entry.get("sla")
     unlock_tier = _coerce_int(entry.get("unlock_tier", 0), minimum=0)
     cook_time = entry.get("cook_time", 8.0)
@@ -118,7 +121,7 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
 
     if not isinstance(display_name, str):
         return None
-    if not isinstance(sell_price, (int, float)) or sell_price <= 0:
+    if sell_price is None:
         return None
     if not isinstance(sla, (int, float)) or sla <= 0:
         return None
@@ -160,7 +163,7 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
     return RecipeDefinition(
         key=key,
         display_name=display_name,
-        sell_price=int(sell_price),
+        sell_price=sell_price,
         sla=float(sla),
         unlock_tier=unlock_tier,
         cook_time=float(cook_time),

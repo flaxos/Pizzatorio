@@ -4,7 +4,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterable, List
 
 RECIPES_FILE = Path("data/recipes.json")
 ITEM_ID_RE = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -183,17 +183,22 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
     )
 
 
+def _ordered_runtime_catalog(recipes: Iterable[RecipeDefinition]) -> Dict[str, Dict[str, str | int | float | List[str]]]:
+    ordered = sorted(recipes, key=lambda recipe: (recipe.unlock_tier, recipe.key))
+    return {recipe.key: recipe.to_runtime_dict() for recipe in ordered}
+
+
 def load_recipe_catalog(path: Path = RECIPES_FILE) -> Dict[str, Dict[str, str | int | float | List[str]]]:
     if not path.exists():
-        return {k: v.to_runtime_dict() for k, v in DEFAULT_RECIPE_DEFINITIONS.items()}
+        return _ordered_runtime_catalog(DEFAULT_RECIPE_DEFINITIONS.values())
 
     try:
         raw = json.loads(path.read_text())
     except (json.JSONDecodeError, OSError):
-        return {k: v.to_runtime_dict() for k, v in DEFAULT_RECIPE_DEFINITIONS.items()}
+        return _ordered_runtime_catalog(DEFAULT_RECIPE_DEFINITIONS.values())
 
     if not isinstance(raw, dict):
-        return {k: v.to_runtime_dict() for k, v in DEFAULT_RECIPE_DEFINITIONS.items()}
+        return _ordered_runtime_catalog(DEFAULT_RECIPE_DEFINITIONS.values())
 
     recipes: Dict[str, RecipeDefinition] = {}
     for key, entry in raw.items():
@@ -205,6 +210,6 @@ def load_recipe_catalog(path: Path = RECIPES_FILE) -> Dict[str, Dict[str, str | 
         recipes[key] = recipe
 
     if not recipes:
-        recipes = DEFAULT_RECIPE_DEFINITIONS
+        return _ordered_runtime_catalog(DEFAULT_RECIPE_DEFINITIONS.values())
 
-    return {k: v.to_runtime_dict() for k, v in recipes.items()}
+    return _ordered_runtime_catalog(recipes.values())

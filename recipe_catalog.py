@@ -130,6 +130,7 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
 
     if not isinstance(display_name, str) or not display_name.strip():
         return None
+    display_name = display_name.strip()
     if sell_price is None:
         return None
     if not _is_positive_number(sla):
@@ -170,6 +171,8 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
     if not all(_is_valid_item_id(item) for item in (*parsed_toppings, *parsed_post_oven)):
         return None
     if len(set(parsed_toppings)) != len(parsed_toppings):
+        return None
+    if len(set(parsed_post_oven)) != len(parsed_post_oven):
         return None
     if set(parsed_toppings).intersection(parsed_post_oven):
         return None

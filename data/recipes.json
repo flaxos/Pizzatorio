@@ -13,7 +13,8 @@
     "post_oven": [],
     "cook_time": 8.0,
     "cook_temp": "medium",
-    "difficulty": 1
+    "difficulty": 1,
+    "demand_weight": 3.0
   },
   "pepperoni": {
     "display_name": "Pepperoni",
@@ -29,7 +30,26 @@
     "post_oven": [],
     "cook_time": 7.5,
     "cook_temp": "high",
-    "difficulty": 2
+    "difficulty": 2,
+    "demand_weight": 3.0
+  },
+  "diavola": {
+    "display_name": "Diavola",
+    "sell_price": 16,
+    "sla": 9.8,
+    "unlock_tier": 1,
+    "base": "rolled_pizza_base",
+    "sauce": "tomato_sauce",
+    "cheese": "shredded_cheese",
+    "toppings": [
+      "sliced_pepperoni",
+      "sliced_jalapeno"
+    ],
+    "post_oven": [],
+    "cook_time": 7.8,
+    "cook_temp": "high",
+    "difficulty": 2,
+    "demand_weight": 1.8
   },
   "veggie": {
     "display_name": "Veggie Deluxe",
@@ -47,7 +67,8 @@
     "post_oven": [],
     "cook_time": 8.2,
     "cook_temp": "medium",
-    "difficulty": 2
+    "difficulty": 2,
+    "demand_weight": 1.5
   },
   "hawaiian": {
     "display_name": "Hawaiian",
@@ -64,7 +85,47 @@
     "post_oven": [],
     "cook_time": 8.4,
     "cook_temp": "medium",
-    "difficulty": 2
+    "difficulty": 2,
+    "demand_weight": 2.0
+  },
+  "capricciosa": {
+    "display_name": "Capricciosa",
+    "sell_price": 19,
+    "sla": 9.3,
+    "unlock_tier": 2,
+    "base": "rolled_pizza_base",
+    "sauce": "tomato_sauce",
+    "cheese": "sliced_mozzarella",
+    "toppings": [
+      "chopped_ham",
+      "sliced_mushroom",
+      "artichoke_hearts",
+      "sliced_olives"
+    ],
+    "post_oven": [],
+    "cook_time": 8.5,
+    "cook_temp": "medium",
+    "difficulty": 2,
+    "demand_weight": 1.4
+  },
+  "four_cheese": {
+    "display_name": "Four Cheese",
+    "sell_price": 19,
+    "sla": 9.4,
+    "unlock_tier": 2,
+    "base": "rolled_pizza_base",
+    "sauce": "tomato_sauce",
+    "cheese": "shredded_cheese",
+    "toppings": [
+      "sliced_mozzarella",
+      "shredded_cheese",
+      "sliced_olives"
+    ],
+    "post_oven": [],
+    "cook_time": 8.1,
+    "cook_temp": "medium",
+    "difficulty": 2,
+    "demand_weight": 1.5
   },
   "meat_feast": {
     "display_name": "Meat Feast",
@@ -83,7 +144,8 @@
     "post_oven": [],
     "cook_time": 9.0,
     "cook_temp": "high",
-    "difficulty": 3
+    "difficulty": 3,
+    "demand_weight": 1.5
   },
   "garden_fresh": {
     "display_name": "Garden Fresh",
@@ -104,25 +166,27 @@
     ],
     "cook_time": 8.6,
     "cook_temp": "medium",
-    "difficulty": 3
+    "difficulty": 3,
+    "demand_weight": 1.0
   },
-  "four_cheese": {
-    "display_name": "Four Cheese",
-    "sell_price": 19,
-    "sla": 9.4,
-    "unlock_tier": 2,
+  "spinach_olive": {
+    "display_name": "Spinach & Olive",
+    "sell_price": 20,
+    "sla": 9.0,
+    "unlock_tier": 3,
     "base": "rolled_pizza_base",
     "sauce": "tomato_sauce",
-    "cheese": "shredded_cheese",
+    "cheese": "sliced_mozzarella",
     "toppings": [
-      "sliced_mozzarella",
-      "shredded_cheese",
-      "sliced_olives"
+      "washed_spinach",
+      "sliced_olives",
+      "minced_garlic"
     ],
     "post_oven": [],
-    "cook_time": 8.1,
+    "cook_time": 8.4,
     "cook_temp": "medium",
-    "difficulty": 2
+    "difficulty": 3,
+    "demand_weight": 0.9
   },
   "bbq_chicken": {
     "display_name": "BBQ Chicken",
@@ -140,7 +204,8 @@
     "post_oven": [],
     "cook_time": 8.8,
     "cook_temp": "high",
-    "difficulty": 3
+    "difficulty": 3,
+    "demand_weight": 2.0
   },
   "spicy_inferno": {
     "display_name": "Spicy Inferno",
@@ -158,7 +223,27 @@
     "post_oven": [],
     "cook_time": 8.3,
     "cook_temp": "high",
-    "difficulty": 3
+    "difficulty": 3,
+    "demand_weight": 1.0
+  },
+  "bacon_ranch": {
+    "display_name": "Bacon Ranch",
+    "sell_price": 22,
+    "sla": 8.6,
+    "unlock_tier": 3,
+    "base": "rolled_pizza_base",
+    "sauce": "tomato_sauce",
+    "cheese": "shredded_cheese",
+    "toppings": [
+      "bacon_strips",
+      "diced_onion",
+      "sliced_pepper"
+    ],
+    "post_oven": [],
+    "cook_time": 8.7,
+    "cook_temp": "high",
+    "difficulty": 3,
+    "demand_weight": 1.5
   },
   "mediterranean": {
     "display_name": "Mediterranean",
@@ -178,83 +263,26 @@
     ],
     "cook_time": 8.6,
     "cook_temp": "medium",
-    "difficulty": 3
+    "difficulty": 3,
+    "demand_weight": 0.8
   },
-  "bacon_ranch": {
-    "display_name": "Bacon Ranch",
-    "sell_price": 22,
-    "sla": 8.6,
-    "unlock_tier": 3,
-    "base": "rolled_pizza_base",
-    "sauce": "tomato_sauce",
-    "cheese": "shredded_cheese",
-    "toppings": [
-      "bacon_strips",
-      "diced_onion",
-      "sliced_pepper"
-    ],
-    "post_oven": [],
-    "cook_time": 8.7,
-    "cook_temp": "high",
-    "difficulty": 3
-  },
-  "mushroom_truffle": {
-    "display_name": "Mushroom Truffle",
+  "double_pepperoni": {
+    "display_name": "Double Pepperoni",
     "sell_price": 25,
-    "sla": 8.4,
-    "unlock_tier": 4,
-    "base": "rolled_pizza_base",
-    "sauce": "tomato_sauce",
-    "cheese": "sliced_mozzarella",
-    "toppings": [
-      "sliced_mushroom",
-      "diced_onion",
-      "minced_garlic"
-    ],
-    "post_oven": [
-      "rocket_leaves"
-    ],
-    "cook_time": 8.9,
-    "cook_temp": "medium",
-    "difficulty": 4
-  },
-  "anchovy_special": {
-    "display_name": "Anchovy Special",
-    "sell_price": 24,
-    "sla": 8.2,
-    "unlock_tier": 4,
-    "base": "rolled_pizza_base",
-    "sauce": "tomato_sauce",
-    "cheese": "shredded_cheese",
-    "toppings": [
-      "anchovy_fillets",
-      "sliced_olives",
-      "diced_onion"
-    ],
-    "post_oven": [],
-    "cook_time": 8.0,
-    "cook_temp": "high",
-    "difficulty": 4
-  },
-  "supreme": {
-    "display_name": "Supreme",
-    "sell_price": 26,
-    "sla": 8.1,
+    "sla": 8.0,
     "unlock_tier": 4,
     "base": "rolled_pizza_base",
     "sauce": "tomato_sauce",
     "cheese": "shredded_cheese",
     "toppings": [
       "sliced_pepperoni",
-      "sliced_pepper",
-      "diced_onion",
-      "sliced_mushroom",
-      "sliced_olives"
+      "bacon_strips"
     ],
     "post_oven": [],
-    "cook_time": 9.1,
+    "cook_time": 8.1,
     "cook_temp": "high",
-    "difficulty": 4
+    "difficulty": 4,
+    "demand_weight": 1.5
   },
   "garlic_chicken": {
     "display_name": "Garlic Chicken",
@@ -274,7 +302,8 @@
     ],
     "cook_time": 8.5,
     "cook_temp": "high",
-    "difficulty": 4
+    "difficulty": 4,
+    "demand_weight": 1.2
   },
   "corn_chipotle": {
     "display_name": "Corn Chipotle",
@@ -292,7 +321,90 @@
     "post_oven": [],
     "cook_time": 8.4,
     "cook_temp": "medium",
-    "difficulty": 4
+    "difficulty": 4,
+    "demand_weight": 0.9
+  },
+  "anchovy_special": {
+    "display_name": "Anchovy Special",
+    "sell_price": 24,
+    "sla": 8.2,
+    "unlock_tier": 4,
+    "base": "rolled_pizza_base",
+    "sauce": "tomato_sauce",
+    "cheese": "shredded_cheese",
+    "toppings": [
+      "anchovy_fillets",
+      "sliced_olives",
+      "diced_onion"
+    ],
+    "post_oven": [],
+    "cook_time": 8.0,
+    "cook_temp": "high",
+    "difficulty": 4,
+    "demand_weight": 0.5
+  },
+  "supreme": {
+    "display_name": "Supreme",
+    "sell_price": 26,
+    "sla": 8.1,
+    "unlock_tier": 4,
+    "base": "rolled_pizza_base",
+    "sauce": "tomato_sauce",
+    "cheese": "shredded_cheese",
+    "toppings": [
+      "sliced_pepperoni",
+      "sliced_pepper",
+      "diced_onion",
+      "sliced_mushroom",
+      "sliced_olives"
+    ],
+    "post_oven": [],
+    "cook_time": 9.1,
+    "cook_temp": "high",
+    "difficulty": 4,
+    "demand_weight": 1.0
+  },
+  "mushroom_truffle": {
+    "display_name": "Mushroom Truffle",
+    "sell_price": 25,
+    "sla": 8.4,
+    "unlock_tier": 4,
+    "base": "rolled_pizza_base",
+    "sauce": "tomato_sauce",
+    "cheese": "sliced_mozzarella",
+    "toppings": [
+      "sliced_mushroom",
+      "diced_onion",
+      "minced_garlic"
+    ],
+    "post_oven": [
+      "rocket_leaves"
+    ],
+    "cook_time": 8.9,
+    "cook_temp": "medium",
+    "difficulty": 4,
+    "demand_weight": 0.7
+  },
+  "surf_turf": {
+    "display_name": "Surf & Turf",
+    "sell_price": 26,
+    "sla": 8.0,
+    "unlock_tier": 4,
+    "base": "rolled_pizza_base",
+    "sauce": "tomato_sauce",
+    "cheese": "sliced_mozzarella",
+    "toppings": [
+      "diced_chicken",
+      "anchovy_fillets",
+      "sliced_pepper"
+    ],
+    "post_oven": [
+      "fresh_basil"
+    ],
+    "cook_time": 8.7,
+    "cook_temp": "high",
+    "difficulty": 4,
+    "demand_weight": 0.6
   },
   "rocket_parma": {
     "display_name": "Rocket Parma",
@@ -312,7 +424,8 @@
     ],
     "cook_time": 8.2,
     "cook_temp": "high",
-    "difficulty": 5
+    "difficulty": 5,
+    "demand_weight": 0.8
   },
   "green_goddess": {
     "display_name": "Green Goddess",
@@ -332,7 +445,8 @@
     ],
     "cook_time": 8.6,
     "cook_temp": "medium",
-    "difficulty": 5
+    "difficulty": 5,
+    "demand_weight": 0.7
   },
   "volcano_beef": {
     "display_name": "Volcano Beef",
@@ -351,23 +465,28 @@
     "post_oven": [],
     "cook_time": 9.0,
     "cook_temp": "high",
-    "difficulty": 5
+    "difficulty": 5,
+    "demand_weight": 0.7
   },
-  "double_pepperoni": {
-    "display_name": "Double Pepperoni",
-    "sell_price": 25,
-    "sla": 8.0,
-    "unlock_tier": 4,
+  "sausage_supreme": {
+    "display_name": "Sausage Supreme",
+    "sell_price": 29,
+    "sla": 7.7,
+    "unlock_tier": 5,
     "base": "rolled_pizza_base",
     "sauce": "tomato_sauce",
     "cheese": "shredded_cheese",
     "toppings": [
+      "sliced_sausage",
       "sliced_pepperoni",
-      "bacon_strips"
+      "cooked_beef_crumble",
+      "sliced_mushroom",
+      "diced_onion"
     ],
     "post_oven": [],
-    "cook_time": 8.1,
+    "cook_time": 9.2,
     "cook_temp": "high",
-    "difficulty": 4
+    "difficulty": 5,
+    "demand_weight": 0.6
   }
 }

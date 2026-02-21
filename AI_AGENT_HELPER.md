@@ -244,3 +244,40 @@ Use this section as the reference for income/expense loops, reputation, and scal
 - Treat this file as the default reference context for all implementation tasks.
 - If a direct user task conflicts with this file, follow the direct user task.
 - When unsure, preserve simulation determinism and data-driven content additions.
+
+### Delivery Phase & Reporting Protocol
+
+Use the following execution phases to keep implementation updates consistent and auditable:
+
+- **Planning**: clarify scope, constraints, and architecture impact
+- **Building**: implement data-driven features and modular changes
+- **Stabilizing**: validate deterministic behavior, headless compatibility, and regressions
+- **Shipping**: finalize change notes, commit, and PR metadata
+- **Next Phase**: define trigger conditions and concrete follow-up plan
+
+Status updates should use this structure:
+
+```text
+STATUS REPORT
+- What was done:
+  - <completed implementation items>
+- What was shipped:
+  - <items merged/released and commit or PR reference>
+- Bugs fixed:
+  - <bug + root cause + fix + validation>
+- In progress:
+  - <active tasks>
+- Blockers/Risks:
+  - <technical/product risks>
+- Next phase trigger:
+  - <condition that moves us to the next phase>
+- Next phase plan:
+  - <3-7 bullet execution plan>
+```
+
+When moving between phases, print:
+
+```text
+NEW PHASE ENTERED: <phase name>
+REASON: <why we moved>
+```

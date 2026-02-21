@@ -130,6 +130,7 @@ class Delivery:
     duration: float
     recipe_key: str
     reward: int
+    elapsed: float = 0.0
 
 
 @dataclass
@@ -260,9 +261,16 @@ class FactorySim:
         recipe_key = str(delivery.get("recipe_key", default_recipe))
         if recipe_key not in RECIPES:
             recipe_key = default_recipe
-        delivery["recipe_key"] = recipe_key
-        delivery.setdefault("reward", RECIPES[recipe_key]["sell_price"])
-        return delivery
+        fallback_remaining = float(delivery.get("remaining", 0.0))
+        return {
+            "mode": str(delivery.get("mode", "drone")),
+            "remaining": fallback_remaining,
+            "elapsed": float(delivery.get("elapsed", 0.0)),
+            "sla": float(delivery.get("sla", RECIPES[recipe_key]["sla"])),
+            "duration": float(delivery.get("duration", fallback_remaining)),
+            "recipe_key": recipe_key,
+            "reward": int(delivery.get("reward", RECIPES[recipe_key]["sell_price"])),
+        }
 
     def save(self, path: Path = SAVE_FILE) -> None:
         path.write_text(json.dumps(self.to_dict(), indent=2))
@@ -328,6 +336,7 @@ class FactorySim:
             Delivery(
                 mode=mode,
                 remaining=travel,
+                elapsed=0.0,
                 sla=max(2.5, order.remaining_sla),
                 duration=travel,
                 recipe_key=order.recipe_key,
@@ -441,10 +450,11 @@ class FactorySim:
 
         next_deliveries: List[Delivery] = []
         for d in self.deliveries:
+            d.elapsed += dt
             d.remaining -= dt
             if d.remaining <= 0:
                 self.completed += 1
-                if d.duration <= d.sla:
+                if d.elapsed <= d.sla:
                     self.ontime += 1
                     self.money += d.reward
                 else:

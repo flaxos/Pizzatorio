@@ -79,6 +79,11 @@ class GameUI:
             "S Save",
             "L Load",
         ]
+        self.build_toolbar_actions = {
+            "Belts": ["1 Conveyor", "5 Delete", "Rot -", "Rot +"],
+            "Machines": ["2 Processor", "3 Oven", "6 Assembly", "Rot -", "Rot +"],
+            "Utilities": ["4 Bot Dock", "S Save", "L Load", "C Cycle R&D", "U Unlock"],
+        }
 
         self.palette = {
             "bg": (12, 15, 24),
@@ -161,11 +166,17 @@ class GameUI:
         y = self.grid_px_h + 78
         rects = []
         x = 10
-        for label in self.toolbar_actions:
+        actions = self._active_toolbar_actions()
+        for label in actions:
             w = max(86, len(label) * 8 + 20)
             rects.append((pygame.Rect(x, y, w, 30), label))
             x += w + 8
         return rects
+
+    def _active_toolbar_actions(self) -> List[str]:
+        if self.active_section == "Build":
+            return list(self.build_toolbar_actions.get(self.active_subsection, self.toolbar_actions))
+        return self.toolbar_actions
 
     def _handle_toolbar_action(self, label: str) -> bool:
         if label == "1 Conveyor":

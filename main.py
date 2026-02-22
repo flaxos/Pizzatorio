@@ -64,6 +64,7 @@ class GameUI:
         self.active_section = "Build"
         self.active_subsection = self.subsections[self.active_section][0]
         self.order_channel = self.sim.order_channel
+        self.commercial_strategy = self.sim.commercial_strategy
 
         self.palette = {
             "bg": (12, 15, 24),
@@ -93,6 +94,10 @@ class GameUI:
             if self.active_section == "Orders":
                 self.order_channel = subsection.lower().replace("-", "_")
                 self.sim.set_order_channel(self.order_channel)
+            elif self.active_section == "Commercials":
+                strategy = subsection.lower()
+                if self.sim.set_commercial_strategy(strategy):
+                    self.commercial_strategy = self.sim.commercial_strategy
 
     def _ui_rects(self) -> Dict[str, List[Tuple[pygame.Rect, str]]]:
         top_y = self.grid_px_h + 8
@@ -174,6 +179,7 @@ class GameUI:
                 elif ev.key == pygame.K_l and SAVE_FILE.exists():
                     self.sim = FactorySim.load()
                     self.order_channel = self.sim.order_channel
+                    self.commercial_strategy = self.sim.commercial_strategy
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
                 x, y = pygame.mouse.get_pos()
                 if y >= self.grid_px_h and self._handle_click(x, y):
@@ -262,6 +268,7 @@ class GameUI:
             f"Menu: {self.active_section}",
             f"Sub-menu: {self.active_subsection}",
             f"Order channel: {self.order_channel}",
+            f"Commercial: {self.commercial_strategy}",
             f"Selected tool: {self.selected}",
             f"Rotation: {self.rotation}",
             f"Orders pending: {len(self.sim.orders)}",

@@ -57,6 +57,7 @@ from config import (
     ORDER_SPAWN_INTERVAL,
 )
 from game.entities import Delivery, Item, Order, Tile
+from commercial_catalog import load_commercial_catalog
 from order_channel_catalog import load_order_channel_catalog
 from recipe_catalog import load_recipe_catalog
 
@@ -64,6 +65,8 @@ RECIPES_FILE = Path("data/recipes.json")
 RECIPES = load_recipe_catalog(RECIPES_FILE)
 ORDER_CHANNELS_FILE = Path("data/order_channels.json")
 ORDER_CHANNELS = load_order_channel_catalog(ORDER_CHANNELS_FILE)
+COMMERCIALS_FILE = Path("data/commercials.json")
+COMMERCIALS = load_commercial_catalog(COMMERCIALS_FILE)
 
 
 def clamp(v: float, lo: float, hi: float) -> float:
@@ -101,6 +104,7 @@ class FactorySim:
         self.last_hygiene_event: float = 0.0
         self.reputation: float = REPUTATION_STARTING
         self.order_channel: str = "delivery" if "delivery" in ORDER_CHANNELS else next(iter(ORDER_CHANNELS))
+        self.commercial_strategy: str = next(iter(COMMERCIALS))
 
         self.place_static_world()
 
@@ -144,6 +148,7 @@ class FactorySim:
             "last_hygiene_event": self.last_hygiene_event,
             "reputation": self.reputation,
             "order_channel": self.order_channel,
+            "commercial_strategy": self.commercial_strategy,
         }
 
     @classmethod
@@ -210,11 +215,25 @@ class FactorySim:
         sim.last_hygiene_event = float(data.get("last_hygiene_event", 0.0))
         sim.reputation = float(data.get("reputation", REPUTATION_STARTING))
         sim.set_order_channel(str(data.get("order_channel", "delivery")))
+        sim.set_commercial_strategy(str(data.get("commercial_strategy", sim.commercial_strategy)), charge=False)
         return sim
 
     def set_order_channel(self, channel: str) -> None:
         if channel in ORDER_CHANNELS:
             self.order_channel = channel
+
+    def set_commercial_strategy(self, strategy: str, *, charge: bool = True) -> bool:
+        if strategy not in COMMERCIALS:
+            return False
+        if strategy == self.commercial_strategy:
+            return True
+        activation_cost = int(COMMERCIALS[strategy].get("activation_cost", 0))
+        if charge and self.money < activation_cost:
+            return False
+        if charge:
+            self.money -= activation_cost
+        self.commercial_strategy = strategy
+        return True
 
     @staticmethod
     def _normalize_item_state(raw_item: Dict) -> Dict:
@@ -336,14 +355,20 @@ class FactorySim:
         if not available:
             return
         channel_cfg = ORDER_CHANNELS.get(self.order_channel, {})
+        commercial_cfg = COMMERCIALS.get(self.commercial_strategy, {})
+        demand_multiplier = max(0.1, float(commercial_cfg.get("demand_multiplier", 1.0)))
+        reward_bonus = max(0.1, float(commercial_cfg.get("reward_multiplier", 1.0)))
         channel_demand_weight = max(0.01, float(channel_cfg.get("demand_weight", 1.0)))
-        weights = [max(0.01, float(RECIPES[key].get("demand_weight", 1.0)) * channel_demand_weight) for key in available]
+        weights = [
+            max(0.01, float(RECIPES[key].get("demand_weight", 1.0)) * channel_demand_weight * demand_multiplier)
+            for key in available
+        ]
         key = self.rng.choices(available, weights=weights, k=1)[0]
         recipe = RECIPES[key]
         sla_multiplier = max(0.1, float(channel_cfg.get("sla_multiplier", 1.0)))
         reward_multiplier = max(0.1, float(channel_cfg.get("reward_multiplier", 1.0)))
         order_sla = float(recipe["sla"]) * sla_multiplier
-        order_reward = max(1, int(round(float(recipe["sell_price"]) * reward_multiplier)))
+        order_reward = max(1, int(round(float(recipe["sell_price"]) * reward_multiplier * reward_bonus)))
         self.orders.append(
             Order(
                 recipe_key=key,
@@ -395,11 +420,14 @@ class FactorySim:
             if self.tech_tree.get("double_spawn", False)
             else ITEM_SPAWN_INTERVAL
         )
+        commercial_cfg = COMMERCIALS.get(self.commercial_strategy, {})
+        demand_multiplier = max(0.1, float(commercial_cfg.get("demand_multiplier", 1.0)))
+        effective_order_spawn_interval = ORDER_SPAWN_INTERVAL / demand_multiplier
         if self.spawn_timer >= effective_spawn_interval:
             self.spawn_timer = 0.0
             self._spawn_item()
 
-        if self.order_spawn_timer >= ORDER_SPAWN_INTERVAL:
+        if self.order_spawn_timer >= effective_order_spawn_interval:
             self.order_spawn_timer = 0.0
             self._spawn_order()
 

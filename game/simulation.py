@@ -446,6 +446,13 @@ class FactorySim:
         self.items.append(Item(1, 7, 0.0, stage="raw", ingredient_type=ingredient_type))
 
     def _enqueue_delivery(self, order: Order) -> None:
+        if order.channel_key == "eat_in":
+            self.completed += 1
+            self.ontime += 1
+            self.money += order.reward
+            self.reputation = clamp(self.reputation + REPUTATION_GAIN_ONTIME, 0.0, 100.0)
+            return
+
         channel_cfg = ORDER_CHANNELS.get(order.channel_key, ORDER_CHANNELS.get(self.order_channel, {}))
         modes = channel_cfg.get("delivery_modes", ["drone", "scooter"])
         mode = self.rng.choice([str(m) for m in modes])

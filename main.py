@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import math
 from dataclasses import dataclass
@@ -37,9 +38,8 @@ class RuntimeLayout:
     viewport_h: int
     safe_top: int
     safe_bottom: int
-    hud_h: int
-    toolbar_h: int
-    panel_h: int
+    top_strip_h: int
+    bottom_sheet_h: int
     side_panel_w: int
     play_w: int
     play_h: int
@@ -48,7 +48,12 @@ class RuntimeLayout:
     grid_px_h: int
     grid_x: int
     grid_y: int
-    panel_y: int
+    play_top: int
+    play_bottom: int
+    bottom_sheet_y: int
+
+
+UI_SETTINGS_FILE = Path("ui_settings.json")
 
 
 class GameUI:
@@ -59,6 +64,7 @@ class GameUI:
         self.sim = sim
 
         self.display_mode = self._select_display_mode()
+        self.touch_mode = self.display_mode == "mobile_fullscreen"
         self.layout: RuntimeLayout | None = None
 
         display = pygame.display.Info()
@@ -74,10 +80,16 @@ class GameUI:
             window_h = GRID_H * CELL + 190
             self.screen = pygame.display.set_mode((window_w, window_h), pygame.RESIZABLE)
 
+        self.hud_state_cycle = ["hidden", "compact", "expanded"]
+        self.bottom_sheet_state = "expanded"
+        self.sidebar_visible = True
+        self.show_top_kpis = True
+        self.show_floating_dock = True
+        self._load_ui_settings()
+
         self._reflow_layout(*self.screen.get_size())
         pygame.display.set_caption("Pizzatorio Factory")
         self.clock = pygame.time.Clock()
-        self.touch_mode = self.display_mode == "mobile_fullscreen"
         self.touch_target_min_h = 56 if self.touch_mode else 34
         self.touch_horizontal_padding = 26 if self.touch_mode else 14
         self.hit_slop = 12 if self.touch_mode else 5
@@ -165,6 +177,34 @@ class GameUI:
         )
         return "mobile_fullscreen" if is_android else "desktop_windowed"
 
+    def _load_ui_settings(self) -> None:
+        if not UI_SETTINGS_FILE.exists():
+            return
+        try:
+            data = json.loads(UI_SETTINGS_FILE.read_text())
+        except (OSError, json.JSONDecodeError):
+            return
+        if str(data.get("bottom_sheet_state", "")) in self.hud_state_cycle:
+            self.bottom_sheet_state = str(data["bottom_sheet_state"])
+        self.sidebar_visible = bool(data.get("sidebar_visible", self.sidebar_visible))
+        self.show_top_kpis = bool(data.get("show_top_kpis", self.show_top_kpis))
+        self.show_floating_dock = bool(data.get("show_floating_dock", self.show_floating_dock))
+
+    def _save_ui_settings(self) -> None:
+        payload = {
+            "bottom_sheet_state": self.bottom_sheet_state,
+            "sidebar_visible": self.sidebar_visible,
+            "show_top_kpis": self.show_top_kpis,
+            "show_floating_dock": self.show_floating_dock,
+        }
+        UI_SETTINGS_FILE.write_text(json.dumps(payload, indent=2))
+
+    def _cycle_bottom_sheet_state(self) -> None:
+        idx = self.hud_state_cycle.index(self.bottom_sheet_state)
+        self.bottom_sheet_state = self.hud_state_cycle[(idx + 1) % len(self.hud_state_cycle)]
+        self._save_ui_settings()
+        self._reflow_layout()
+
     def _reflow_layout(self, viewport_w: int | None = None, viewport_h: int | None = None) -> None:
         if viewport_w is None or viewport_h is None:
             viewport_w, viewport_h = self.screen.get_size()
@@ -173,33 +213,38 @@ class GameUI:
         mobile = self.display_mode == "mobile_fullscreen"
         safe_top = int(viewport_h * 0.02) if mobile else 0
         safe_bottom = int(viewport_h * 0.03) if mobile else 0
-        hud_h = max(120, int(viewport_h * 0.12))
-        toolbar_h = max(66 if self.touch_mode else 58, int(viewport_h * (0.09 if self.touch_mode else 0.08)))
-        panel_h = hud_h + toolbar_h
-        if self.touch_mode:
-            panel_h = max(panel_h, int(viewport_h * 0.42))
-        else:
-            panel_h = max(panel_h, 170)
-        side_panel_w = max(300, int(viewport_w * 0.25)) if landscape else 0
+
+        top_strip_h = max(54, int(viewport_h * 0.1)) if self.show_top_kpis else 0
+        sheet_heights = {
+            "hidden": 0,
+            "compact": max(64 if self.touch_mode else 56, int(viewport_h * 0.11)),
+            "expanded": max(210 if self.touch_mode else 170, int(viewport_h * (0.38 if self.touch_mode else 0.3))),
+        }
+        bottom_sheet_h = sheet_heights.get(self.bottom_sheet_state, sheet_heights["expanded"])
+
+        sidebar_ratio = 0.28 if landscape else 0.0
+        side_panel_w = 0
+        if landscape and self.sidebar_visible:
+            side_panel_w = max(250, int(viewport_w * sidebar_ratio))
 
         play_w = max(320, viewport_w - side_panel_w)
-        play_h = max(220, viewport_h - safe_top - safe_bottom - panel_h)
-        cell_size = max(18, int(min(play_w / GRID_W, play_h / GRID_H)))
+        play_top = safe_top + top_strip_h
+        play_bottom = viewport_h - safe_bottom - bottom_sheet_h
+        play_h = max(220, play_bottom - play_top)
 
+        cell_size = max(18, int(min(play_w / GRID_W, play_h / GRID_H)))
         grid_px_w = int(cell_size * GRID_W)
         grid_px_h = int(cell_size * GRID_H)
         grid_x = max(0, (play_w - grid_px_w) // 2)
-        grid_y = safe_top + max(0, (play_h - grid_px_h) // 2)
-        panel_y = viewport_h - safe_bottom - panel_h
+        grid_y = play_top + max(0, (play_h - grid_px_h) // 2)
 
         self.layout = RuntimeLayout(
             viewport_w=viewport_w,
             viewport_h=viewport_h,
             safe_top=safe_top,
             safe_bottom=safe_bottom,
-            hud_h=hud_h,
-            toolbar_h=toolbar_h,
-            panel_h=panel_h,
+            top_strip_h=top_strip_h,
+            bottom_sheet_h=bottom_sheet_h,
             side_panel_w=side_panel_w,
             play_w=play_w,
             play_h=play_h,
@@ -208,7 +253,9 @@ class GameUI:
             grid_px_h=grid_px_h,
             grid_x=grid_x,
             grid_y=grid_y,
-            panel_y=panel_y,
+            play_top=play_top,
+            play_bottom=play_bottom,
+            bottom_sheet_y=viewport_h - safe_bottom - bottom_sheet_h,
         )
 
         self.landscape = landscape
@@ -544,7 +591,9 @@ class GameUI:
 
     def _ui_rects(self) -> Dict[str, List[Tuple[pygame.Rect, str]]]:
         assert self.layout is not None
-        top_y = self.layout.panel_y + 8
+        if self.layout.bottom_sheet_h <= 0 or self.bottom_sheet_state != "expanded":
+            return {"sections": [], "subsections": []}
+        top_y = self.layout.bottom_sheet_y + 8
         sections = self._layout_chip_rows(
             self.main_sections,
             start_y=top_y,
@@ -567,8 +616,22 @@ class GameUI:
         return {"sections": sections, "subsections": subs}
 
     def _toolbar_rects(self) -> List[Tuple[pygame.Rect, str]]:
+        assert self.layout is not None
+        if self.layout.bottom_sheet_h <= 0:
+            return []
+        if self.bottom_sheet_state == "compact":
+            return self._layout_chip_rows(
+                ["1 Conveyor", "2 Processor", "3 Oven", "5 Delete", "Rot +"],
+                start_y=self.layout.bottom_sheet_y + 8,
+                min_width=120 if self.touch_mode else 96,
+                min_height=self.touch_target_min_h,
+                gap_x=10,
+                gap_y=8,
+                label_fn=self._toolbar_button_label,
+            )
+
         ui_rects = self._ui_rects()
-        last_sub_bottom = max(rect.bottom for rect, _ in ui_rects["subsections"]) if ui_rects["subsections"] else self.layout.panel_y + 8
+        last_sub_bottom = max(rect.bottom for rect, _ in ui_rects["subsections"]) if ui_rects["subsections"] else self.layout.bottom_sheet_y + 8
         y = last_sub_bottom + 10
         actions = self._active_toolbar_actions()
         return self._layout_chip_rows(
@@ -612,15 +675,39 @@ class GameUI:
             self.sim.try_unlock_research_focus()
         elif label == "S Save":
             self.sim.save()
+            self._save_ui_settings()
         elif label == "L Load" and SAVE_FILE.exists():
             self.sim = FactorySim.load()
             self.order_channel = self.sim.order_channel
             self.commercial_strategy = self.sim.commercial_strategy
+            self._load_ui_settings()
+            self._reflow_layout()
         else:
             return False
         return True
 
     def _handle_click(self, mx: int, my: int) -> bool:
+        for rect, action in self.hud_toggle_rects:
+            if self._expanded_hit_rect(rect).collidepoint(mx, my):
+                if action == "sheet":
+                    self._cycle_bottom_sheet_state()
+                elif action == "kpis":
+                    self.show_top_kpis = not self.show_top_kpis
+                    self._save_ui_settings()
+                    self._reflow_layout()
+                elif action == "dock":
+                    self.show_floating_dock = not self.show_floating_dock
+                    self._save_ui_settings()
+                elif action.startswith("tool:"):
+                    return self._handle_toolbar_action(action.split(":", 1)[1])
+                return True
+
+        if self.sidebar_toggle_rect and self._expanded_hit_rect(self.sidebar_toggle_rect).collidepoint(mx, my):
+            self.sidebar_visible = not self.sidebar_visible
+            self._save_ui_settings()
+            self._reflow_layout()
+            return True
+
         ui_rects = self._ui_rects()
         for rect, section in ui_rects["sections"]:
             if self._expanded_hit_rect(rect).collidepoint(mx, my):
@@ -683,6 +770,16 @@ class GameUI:
                     self._handle_toolbar_action("U Unlock")
                 elif ev.key == pygame.K_l:
                     self._handle_toolbar_action("L Load")
+                elif ev.key == pygame.K_h:
+                    self._cycle_bottom_sheet_state()
+                elif ev.key == pygame.K_F6:
+                    self.show_top_kpis = not self.show_top_kpis
+                    self._save_ui_settings()
+                    self._reflow_layout()
+                elif ev.key == pygame.K_F7:
+                    self.sidebar_visible = not self.sidebar_visible
+                    self._save_ui_settings()
+                    self._reflow_layout()
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
                 x, y = pygame.mouse.get_pos()
                 if self.context_menu_cell is not None and self._handle_context_menu_click(x, y):
@@ -795,8 +892,16 @@ class GameUI:
 
     def _draw_sidebar(self) -> None:
         assert self.layout is not None
+        if not self.landscape:
+            return
+
+        toggle = pygame.Rect(self.layout.play_w - 24, 12, 22, 54)
+        self.sidebar_toggle_rect = toggle
+        self._draw_chip(toggle, ">" if not self.sidebar_visible else "<", self.sidebar_visible)
+
         if self.layout.side_panel_w <= 0:
             return
+
         panel = pygame.Rect(self.layout.play_w, 0, self.layout.side_panel_w, self.layout.viewport_h)
         pygame.draw.rect(self.screen, (16, 21, 33), panel)
         pygame.draw.line(
@@ -808,52 +913,30 @@ class GameUI:
         )
 
         y = 14
-        self.screen.blit(self.font.render("Landscape Ops", True, self.palette["text"]), (self.layout.play_w + 14, y))
+        self.screen.blit(self.font.render("Operations", True, self.palette["text"]), (self.layout.play_w + 14, y))
         y += 34
-        rows = [
-            f"Menu: {self.active_section}",
-            f"Sub-menu: {self.active_subsection}",
-            f"Order channel: {self.order_channel}",
-            f"Commercial: {self.commercial_strategy}",
-            f"R&D focus: {self.sim.research_focus or 'auto'}",
-            f"R&D available: {len(self.sim.available_research_targets())}",
-            f"Selected tool: {self.selected}",
-            f"Rotation: {self.rotation}",
-            f"Orders pending: {len(self.sim.orders)}",
+        critical = [
+            f"Cash: ${self.sim.money}",
+            f"Orders due: {len(self.sim.orders)}",
+            f"Throughput: {self.sim.ontime_rate:0.1f}%",
             f"Deliveries active: {len(self.sim.deliveries)}",
         ]
-        for row in rows:
-            self.screen.blit(self.small.render(row, True, self.palette["muted"]), (self.layout.play_w + 14, y))
-            y += 25
+        for row in critical:
+            self.screen.blit(self.small.render(row, True, self.palette["text"]), (self.layout.play_w + 14, y))
+            y += 24
 
-        card_y = y + 8
+        card_y = y + 10
         card_w = self.layout.side_panel_w - 28
-        self._draw_metric_card(self.layout.play_w + 14, card_y, card_w, "On-time Throughput", self.sim.ontime_rate, (106, 212, 148))
-        self._draw_metric_card(self.layout.play_w + 14, card_y + 64, card_w, "Bottleneck", self.sim.bottleneck, (242, 186, 88))
-        self._draw_metric_card(self.layout.play_w + 14, card_y + 128, card_w, "Hygiene", self.sim.hygiene, (101, 189, 255))
+        self._draw_metric_card(self.layout.play_w + 14, card_y, card_w, "Bottleneck", self.sim.bottleneck, (242, 186, 88))
+        self._draw_metric_card(self.layout.play_w + 14, card_y + 64, card_w, "Hygiene", self.sim.hygiene, (101, 189, 255))
 
-        if self.active_section == "Info":
-            detail_y = card_y + 202
-            if self.active_subsection == "Economy":
-                net = self.sim.total_revenue - self.sim.total_spend
-                details = [
-                    f"Revenue: ${self.sim.total_revenue}",
-                    f"Spend: ${self.sim.total_spend}",
-                    f"Net: ${net}",
-                    f"Waste items: {self.sim.waste}",
-                ]
-            elif self.active_subsection == "Logs":
-                details = ["Recent events:"] + self.sim.event_log[-5:]
-            else:
-                details = [
-                    f"Completed: {self.sim.completed}",
-                    f"On-time: {self.sim.ontime}",
-                    f"SLA rate: {self.sim.ontime_rate:0.1f}%",
-                    f"Rep: {self.sim.reputation:0.1f}",
-                ]
-            for line in details:
+        if self.active_section == "Info" and self.active_subsection == "Logs":
+            detail_y = card_y + 138
+            self.screen.blit(self.small.render("Verbose logs:", True, self.palette["muted"]), (self.layout.play_w + 14, detail_y))
+            detail_y += 22
+            for line in self.sim.event_log[-4:]:
                 self.screen.blit(self.small.render(line, True, self.palette["muted"]), (self.layout.play_w + 14, detail_y))
-                detail_y += 23
+                detail_y += 21
 
     def draw_tile(self, x: int, y: int, tile) -> None:
         assert self.layout is not None
@@ -883,6 +966,8 @@ class GameUI:
         assert self.layout is not None
         cell = int(self.layout.cell_size * self.zoom)
         self.screen.fill(self.palette["bg"])
+        self.hud_toggle_rects = []
+        self.sidebar_toggle_rect = None
         for y in range(GRID_H):
             for x in range(GRID_W):
                 self.draw_tile(x, y, self.sim.grid[y][x])

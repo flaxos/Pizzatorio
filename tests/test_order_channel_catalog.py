@@ -21,6 +21,7 @@ class TestOrderChannelCatalog(unittest.TestCase):
                 "sla_multiplier": 0.9,
                 "demand_weight": 2.0,
                 "delivery_modes": ["drone"],
+                "min_reputation": 15.0,
             }
         }
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
@@ -32,6 +33,7 @@ class TestOrderChannelCatalog(unittest.TestCase):
             self.assertIn("delivery", channels)
             self.assertEqual(channels["delivery"]["delivery_modes"], ["drone"])
             self.assertEqual(channels["delivery"]["reward_multiplier"], 1.2)
+            self.assertEqual(channels["delivery"]["min_reputation"], 15.0)
         finally:
             path.unlink(missing_ok=True)
 
@@ -43,6 +45,7 @@ class TestOrderChannelCatalog(unittest.TestCase):
                 "sla_multiplier": 0,
                 "demand_weight": 1,
                 "delivery_modes": [],
+                "min_reputation": -1,
             },
             "good": {
                 "display_name": "Good",
@@ -50,6 +53,7 @@ class TestOrderChannelCatalog(unittest.TestCase):
                 "sla_multiplier": 1,
                 "demand_weight": 1,
                 "delivery_modes": ["scooter"],
+                "min_reputation": 0,
             },
         }
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:

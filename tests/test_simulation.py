@@ -612,6 +612,14 @@ class TestOrderChannels(unittest.TestCase):
         sim.set_order_channel("unknown")
         self.assertEqual(sim.order_channel, "takeaway")
 
+    def test_channel_switch_requires_min_reputation(self):
+        sim = FactorySim(seed=4)
+        sim.reputation = 0.0
+
+        sim.set_order_channel("takeaway")
+
+        self.assertEqual(sim.order_channel, "delivery")
+
     def test_takeaway_order_uses_channel_modifiers(self):
         sim = FactorySim(seed=4)
         sim.orders.clear()
@@ -659,6 +667,30 @@ class TestOrderChannels(unittest.TestCase):
             Order(recipe_key="margherita", remaining_sla=30.0, total_sla=30.0, reward=11, channel_key="eat_in")
         )
         sim.items.append(Item(x=17, y=7, progress=0.0, stage="baked", ingredient_type="flour", recipe_key="margherita"))
+
+        for _ in range(15):
+            sim.tick(0.1)
+
+        self.assertEqual(len(sim.deliveries), 0)
+        self.assertGreaterEqual(sim.completed, 1)
+
+    def test_eat_in_sink_completion_with_delivery_boost_stays_stable(self):
+        sim = FactorySim(seed=4)
+        sim.orders.clear()
+        sim.orders.append(
+            Order(recipe_key="margherita", remaining_sla=30.0, total_sla=30.0, reward=11, channel_key="eat_in")
+        )
+        sim.items.append(
+            Item(
+                x=17,
+                y=7,
+                progress=0.0,
+                stage="baked",
+                ingredient_type="flour",
+                recipe_key="margherita",
+                delivery_boost=1.0,
+            )
+        )
 
         for _ in range(15):
             sim.tick(0.1)

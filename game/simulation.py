@@ -242,10 +242,16 @@ class FactorySim:
         self.event_log = self.event_log[-12:]
 
     def set_order_channel(self, channel: str) -> None:
-        if channel in ORDER_CHANNELS:
-            if channel != self.order_channel:
-                self._log_event(f"Order channel switched to {channel}")
-            self.order_channel = channel
+        if channel not in ORDER_CHANNELS:
+            return
+        channel_cfg = ORDER_CHANNELS[channel]
+        min_reputation = max(0.0, float(channel_cfg.get("min_reputation", 0.0)))
+        if self.reputation < min_reputation:
+            self._log_event(f"Order channel {channel} locked (need rep {min_reputation:.0f})")
+            return
+        if channel != self.order_channel:
+            self._log_event(f"Order channel switched to {channel}")
+        self.order_channel = channel
 
     def set_commercial_strategy(self, strategy: str, *, charge: bool = True) -> bool:
         if strategy not in COMMERCIALS:
@@ -587,7 +593,7 @@ class FactorySim:
                         order_idx = 0
                     order = self.orders.pop(order_idx)
                     self._enqueue_delivery(order)
-                    if item.delivery_boost > 0:
+                    if item.delivery_boost > 0 and self.deliveries:
                         self.deliveries[-1].remaining = max(1.5, self.deliveries[-1].remaining - item.delivery_boost)
                         self.deliveries[-1].duration = self.deliveries[-1].remaining
                 else:

@@ -54,12 +54,34 @@ PROCESS_FLOW: dict[str, dict] = {
 
 # ---------------------------------------------------------------------------
 # Tech tree unlock thresholds (tech_key → research_points_required)
+#
+# Branches:
+#   Cooking     — ovens, turbo_oven, precision_cooking
+#   Automation  — bots, hygiene_training
+#   Logistics   — turbo_belts, priority_dispatch, double_spawn
 # ---------------------------------------------------------------------------
 TECH_UNLOCK_COSTS: dict[str, float] = {
+    # Cooking branch
     "ovens": 12.0,
+    "turbo_oven": 40.0,
+    "precision_cooking": 95.0,
+    # Automation branch
     "bots": 28.0,
+    "hygiene_training": 50.0,
+    # Logistics branch
     "turbo_belts": 55.0,
+    "priority_dispatch": 85.0,
+    "double_spawn": 140.0,
 }
+
+# ---------------------------------------------------------------------------
+# Research effect tuning constants
+# ---------------------------------------------------------------------------
+TURBO_OVEN_SPEED_BONUS: float = 0.18      # extra oven speed multiplier when turbo_oven unlocked
+PRECISION_COOKING_WASTE_REFUND: float = 0.40  # fraction of sell_price refunded on wasted items
+HYGIENE_TRAINING_RECOVERY_BONUS: float = 0.30  # extra hygiene/s recovery when unlocked
+PRIORITY_DISPATCH_LATE_MULTIPLIER: float = 0.75  # late-delivery reward fraction (vs 0.5 default)
+DOUBLE_SPAWN_INTERVAL_DIVISOR: float = 1.75   # divides item spawn interval when unlocked
 
 # ---------------------------------------------------------------------------
 # Simulation tuning

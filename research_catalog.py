@@ -31,16 +31,20 @@ class ResearchDefinition:
 DEFAULT_RESEARCH: Dict[str, ResearchDefinition] = {
     "ovens": ResearchDefinition("ovens", "Oven Foundations", "cooking", 12.0),
     "bots": ResearchDefinition("bots", "Bot Docks", "automation", 28.0),
-    "turbo_oven": ResearchDefinition("turbo_oven", "Turbo Ovens", "cooking", 40.0),
-    "hygiene_training": ResearchDefinition("hygiene_training", "Hygiene Training", "automation", 50.0),
-    "turbo_belts": ResearchDefinition("turbo_belts", "Turbo Belts", "logistics", 55.0),
-    "priority_dispatch": ResearchDefinition("priority_dispatch", "Priority Dispatch", "logistics", 85.0),
+    "turbo_oven": ResearchDefinition("turbo_oven", "Turbo Ovens", "cooking", 40.0, ("ovens",)),
+    "hygiene_training": ResearchDefinition("hygiene_training", "Hygiene Training", "automation", 50.0, ("bots",)),
+    "turbo_belts": ResearchDefinition("turbo_belts", "Turbo Belts", "logistics", 55.0, ("bots",)),
+    "priority_dispatch": ResearchDefinition("priority_dispatch", "Priority Dispatch", "logistics", 85.0, ("turbo_belts",)),
     "precision_cooking": ResearchDefinition(
-        "precision_cooking", "Precision Cooking", "cooking", 95.0, ("turbo_oven",)
+        "precision_cooking", "Precision Cooking", "cooking", 95.0, ("turbo_oven", "hygiene_training")
     ),
-    "double_spawn": ResearchDefinition("double_spawn", "Double Spawn", "logistics", 140.0),
-    "second_location": ResearchDefinition("second_location", "Second Location", "expansion", 180.0),
-    "franchise_system": ResearchDefinition("franchise_system", "Franchise System", "expansion", 320.0),
+    "double_spawn": ResearchDefinition("double_spawn", "Double Spawn", "logistics", 140.0, ("turbo_belts",)),
+    "second_location": ResearchDefinition(
+        "second_location", "Second Location", "expansion", 180.0, ("priority_dispatch", "precision_cooking")
+    ),
+    "franchise_system": ResearchDefinition(
+        "franchise_system", "Franchise System", "expansion", 320.0, ("second_location", "double_spawn")
+    ),
 }
 
 

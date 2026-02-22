@@ -220,6 +220,8 @@ class TestFactorySimTick(unittest.TestCase):
 
     def test_research_focus_prioritises_unlock(self):
         sim = FactorySim(seed=1)
+        sim.tech_tree["bots"] = True
+        sim.tech_tree["turbo_belts"] = True
         sim.set_research_focus("priority_dispatch")
         sim.research_points = 100.0
         sim.tick(0.01)
@@ -236,6 +238,7 @@ class TestFactorySimTick(unittest.TestCase):
         self.assertIn("ovens", targets)
         self.assertNotIn("precision_cooking", targets)
         sim.tech_tree["turbo_oven"] = True
+        sim.tech_tree["hygiene_training"] = True
         targets = sim.available_research_targets()
         self.assertIn("precision_cooking", targets)
 
@@ -492,6 +495,7 @@ class TestResearchEffects(unittest.TestCase):
     def test_turbo_oven_auto_unlocks_at_threshold(self):
         from config import TECH_UNLOCK_COSTS
         sim = self._fresh()
+        sim.tech_tree["ovens"] = True
         sim.research_points = TECH_UNLOCK_COSTS["turbo_oven"]
         sim.tick(0.01)
         self.assertTrue(sim.tech_tree["turbo_oven"])
@@ -499,6 +503,8 @@ class TestResearchEffects(unittest.TestCase):
     def test_priority_dispatch_auto_unlocks_at_threshold(self):
         from config import TECH_UNLOCK_COSTS
         sim = self._fresh()
+        sim.tech_tree["bots"] = True
+        sim.tech_tree["turbo_belts"] = True
         sim.research_points = TECH_UNLOCK_COSTS["priority_dispatch"]
         sim.tick(0.01)
         self.assertTrue(sim.tech_tree["priority_dispatch"])
@@ -830,6 +836,7 @@ def test_precision_cooking_does_not_unlock_without_turbo_oven_prerequisite():
 def test_precision_cooking_unlocks_after_turbo_oven_prerequisite_met():
     sim = FactorySim(seed=31)
     sim.tech_tree["turbo_oven"] = True
+    sim.tech_tree["hygiene_training"] = True
     sim.research_points = TECH_UNLOCK_COSTS["precision_cooking"]
 
     sim._process_research()

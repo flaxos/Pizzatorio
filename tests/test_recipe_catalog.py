@@ -413,6 +413,45 @@ class RecipeCatalogTests(unittest.TestCase):
         self.assertNotIn("duplicate_post_oven", catalog)
         self.assertNotIn("too_many_post_oven", catalog)
 
+
+    def test_required_research_validation_and_trimming(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "recipes.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "valid_required_research": {
+                            "display_name": "Valid Required Research",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "required_research": " precision_cooking ",
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                        "invalid_required_research": {
+                            "display_name": "Invalid Required Research",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "required_research": "bad-tech",
+                            "toppings": ["a"],
+                            "post_oven": [],
+                        },
+                    }
+                )
+            )
+            catalog = load_recipe_catalog(path)
+
+        self.assertEqual("precision_cooking", catalog["valid_required_research"]["required_research"])
+        self.assertNotIn("invalid_required_research", catalog)
+
     def test_catalog_order_is_deterministic_by_tier_then_key(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "recipes.json"

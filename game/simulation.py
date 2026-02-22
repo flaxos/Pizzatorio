@@ -470,6 +470,10 @@ class FactorySim:
             key
             for key, recipe in RECIPES.items()
             if recipe.get("unlock_tier", 0) <= (self.expansion_level - 1)
+            and (
+                not str(recipe.get("required_research", "")).strip()
+                or self.tech_tree.get(str(recipe.get("required_research", "")).strip(), False)
+            )
         ]
         if not channel_key:
             return available

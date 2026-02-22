@@ -20,7 +20,8 @@ class Item:
     ``ingredient_type`` tracks which real ingredient this item represents
     (e.g. ``"flour"``, ``"tomato"``).  An empty string means the type is
     unknown / legacy.  ``stage`` tracks the processing state: raw →
-    processed → baked.
+    processed → baked.  ``recipe_key`` is set when the item passes through
+    an assembly table, linking it to the specific order it will fulfil.
     """
 
     x: int
@@ -29,6 +30,7 @@ class Item:
     stage: str = "raw"
     delivery_boost: float = 0.0
     ingredient_type: str = ""
+    recipe_key: str = ""
 
 
 @dataclass

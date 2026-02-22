@@ -25,6 +25,7 @@ MACHINE: str = "machine"
 PROCESSOR: str = "processor"
 OVEN: str = "oven"
 BOT_DOCK: str = "bot_dock"
+ASSEMBLY_TABLE: str = "assembly_table"
 SOURCE: str = "source"
 SINK: str = "sink"
 
@@ -95,6 +96,7 @@ EXPANSION_PROGRESS_RATE: float = 0.35  # base expansion progress per second
 EXPANSION_DELIVERY_BONUS: float = 0.002  # extra expansion progress per completed delivery
 EXPANSION_BASE_NEEDED: float = 24.0    # base expansion threshold (× level)
 TURBO_BELT_BONUS: float = 0.25         # additional speed multiplier when unlocked
+ASSEMBLY_TABLE_SPEED: float = 0.60    # progress speed while tagging at assembly table
 BOT_AUTO_CHARGE_RATE: float = 0.18     # auto-bot charge accumulation per dock per second
 BOT_AUTO_DELIVERY_REDUCTION: float = 0.8  # seconds reduced from target delivery per bot charge
 LATE_DELIVERY_PENALTY: float = 0.5     # fraction of reward paid for late deliveries

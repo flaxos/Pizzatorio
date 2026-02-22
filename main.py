@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from config import (
+    ASSEMBLY_TABLE,
     BOT_DOCK,
     CELL,
     CONVEYOR,
@@ -113,7 +114,7 @@ class GameUI:
 
     def _toolbar_rects(self) -> List[Tuple[pygame.Rect, str]]:
         y = self.grid_px_h + 78
-        labels = ["1 Conveyor", "2 Processor", "3 Oven", "4 Bot Dock", "5 Delete", "R Rotate", "Q/E Rot ±"]
+        labels = ["1 Conveyor", "2 Processor", "3 Oven", "4 Bot Dock", "6 Assembly", "5 Delete", "R Rotate", "Q/E Rot ±"]
         rects = []
         x = 10
         for label in labels:
@@ -147,6 +148,8 @@ class GameUI:
                     self.selected = OVEN
                 elif ev.key == pygame.K_4:
                     self.selected = BOT_DOCK
+                elif ev.key == pygame.K_6:
+                    self.selected = ASSEMBLY_TABLE
                 elif ev.key == pygame.K_5:
                     self.selected = EMPTY
                 elif ev.key == pygame.K_r or ev.key == pygame.K_e:
@@ -185,10 +188,11 @@ class GameUI:
             PROCESSOR: (230, 190, 102),
             OVEN: (232, 102, 61),
             BOT_DOCK: (98, 211, 222),
+            ASSEMBLY_TABLE: (162, 110, 220),
             SOURCE: (88, 193, 112),
             SINK: (196, 98, 96),
         }
-        return colors[kind]
+        return colors.get(kind, (100, 100, 100))
 
     def _draw_tile_icon(self, tile, rect: pygame.Rect) -> None:
         cx, cy = rect.center
@@ -216,6 +220,10 @@ class GameUI:
             pygame.draw.circle(self.screen, icon, (cx - 3, cy - 4), 1)
             pygame.draw.circle(self.screen, icon, (cx + 3, cy - 4), 1)
             pygame.draw.rect(self.screen, icon, (cx - 10, cy + 8, 20, 3), border_radius=2)
+        elif tile.kind == ASSEMBLY_TABLE:
+            pygame.draw.rect(self.screen, icon, pygame.Rect(cx - 13, cy - 4, 26, 12), width=2, border_radius=3)
+            pygame.draw.line(self.screen, icon, (cx - 9, cy + 8), (cx - 9, cy + 14), 2)
+            pygame.draw.line(self.screen, icon, (cx + 9, cy + 8), (cx + 9, cy + 14), 2)
         elif tile.kind == SINK:
             pygame.draw.circle(self.screen, icon, (cx, cy), 11, width=2)
             pygame.draw.circle(self.screen, icon, (cx, cy), 4)
@@ -317,6 +325,7 @@ class GameUI:
                 or ("Processor" in label and self.selected == PROCESSOR)
                 or ("Oven" in label and self.selected == OVEN)
                 or ("Bot Dock" in label and self.selected == BOT_DOCK)
+                or ("Assembly" in label and self.selected == ASSEMBLY_TABLE)
                 or ("Delete" in label and self.selected == EMPTY)
             )
             self._draw_chip(rect, label, active)

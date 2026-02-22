@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from config import (
+    ASSEMBLY_TABLE,
     BOT_DOCK,
     CONVEYOR,
     EMPTY,
@@ -442,6 +443,135 @@ class TestResearchEffects(unittest.TestCase):
         self.assertTrue(sim2.tech_tree["turbo_oven"])
         self.assertTrue(sim2.tech_tree["hygiene_training"])
         self.assertFalse(sim2.tech_tree["precision_cooking"])
+
+
+class TestAssemblyTable(unittest.TestCase):
+    """Assembly table: recipe_key tagging and recipe-matched order fulfillment."""
+
+    def _fresh(self) -> FactorySim:
+        return FactorySim(seed=42)
+
+    def test_item_recipe_key_defaults_to_empty(self):
+        item = Item(x=0, y=0, ingredient_type="flour")
+        self.assertEqual(item.recipe_key, "")
+
+    def test_assembly_table_tags_item_with_oldest_order_recipe_key(self):
+        sim = self._fresh()
+        # Place an assembly table and put a processed item on it (almost done)
+        sim.grid[7][5] = Tile(ASSEMBLY_TABLE, rot=0)
+        sim.orders.append(Order(recipe_key="margherita", remaining_sla=60.0, total_sla=60.0, reward=12))
+        sim.items.append(Item(x=5, y=7, progress=0.90, stage="processed", ingredient_type="flour"))
+        # Tick: with ASSEMBLY_TABLE_SPEED=0.60 and dt=0.2, progress += 0.12 → 1.02 ≥ 1.0
+        sim.tick(0.2)
+        # Item should have moved off the table (to x=6) with recipe_key assigned
+        tagged = [i for i in sim.items if i.recipe_key == "margherita"]
+        self.assertEqual(len(tagged), 1)
+        self.assertEqual(tagged[0].x, 6)
+
+    def test_assembly_table_does_not_override_existing_recipe_key(self):
+        sim = self._fresh()
+        sim.grid[7][5] = Tile(ASSEMBLY_TABLE, rot=0)
+        sim.orders.append(Order(recipe_key="pepperoni", remaining_sla=60.0, total_sla=60.0, reward=15))
+        # Item already tagged with a different recipe
+        sim.items.append(
+            Item(x=5, y=7, progress=0.90, stage="processed", ingredient_type="flour", recipe_key="margherita")
+        )
+        sim.tick(0.2)
+        # recipe_key must not have been overwritten
+        tagged = [i for i in sim.items if i.recipe_key == "margherita"]
+        self.assertEqual(len(tagged), 1)
+
+    def test_assembly_table_does_not_tag_when_no_orders(self):
+        sim = self._fresh()
+        sim.grid[7][5] = Tile(ASSEMBLY_TABLE, rot=0)
+        sim.orders.clear()
+        sim.items.append(Item(x=5, y=7, progress=0.90, stage="processed", ingredient_type="flour"))
+        sim.tick(0.2)
+        # Item moved but recipe_key stays empty
+        for item in sim.items:
+            self.assertEqual(item.recipe_key, "")
+
+    def test_sink_matches_delivery_by_recipe_key(self):
+        sim = self._fresh()
+        sim.orders.clear()
+        sim.orders.append(Order(recipe_key="margherita", remaining_sla=60.0, total_sla=60.0, reward=12))
+        sim.orders.append(Order(recipe_key="pepperoni", remaining_sla=60.0, total_sla=60.0, reward=15))
+        # Baked item tagged for pepperoni placed near the sink
+        sim.items.append(
+            Item(x=17, y=7, progress=0.0, stage="baked", ingredient_type="flour", recipe_key="pepperoni")
+        )
+        for _ in range(15):
+            sim.tick(0.1)
+        # Pepperoni order consumed; margherita still pending
+        remaining = [o.recipe_key for o in sim.orders]
+        self.assertIn("margherita", remaining)
+        self.assertNotIn("pepperoni", remaining)
+
+    def test_sink_fulfillment_uses_correct_reward_for_recipe(self):
+        sim = self._fresh()
+        sim.orders.clear()
+        # margherita reward=12, pepperoni reward=15
+        sim.orders.append(Order(recipe_key="margherita", remaining_sla=60.0, total_sla=60.0, reward=12))
+        sim.orders.append(Order(recipe_key="pepperoni", remaining_sla=60.0, total_sla=60.0, reward=15))
+        sim.items.append(
+            Item(x=17, y=7, progress=0.0, stage="baked", ingredient_type="flour", recipe_key="pepperoni")
+        )
+        for _ in range(15):
+            sim.tick(0.1)
+        # A delivery for pepperoni should have been enqueued
+        pepperoni_deliveries = [d for d in sim.deliveries if d.recipe_key == "pepperoni"]
+        if pepperoni_deliveries:
+            self.assertEqual(pepperoni_deliveries[0].reward, 15)
+
+    def test_sink_falls_back_to_oldest_order_when_no_recipe_key(self):
+        sim = self._fresh()
+        sim.orders.clear()
+        sim.orders.append(Order(recipe_key="margherita", remaining_sla=60.0, total_sla=60.0, reward=12))
+        sim.orders.append(Order(recipe_key="pepperoni", remaining_sla=60.0, total_sla=60.0, reward=15))
+        # Untagged baked item — should consume the OLDEST order (margherita)
+        sim.items.append(Item(x=17, y=7, progress=0.0, stage="baked", ingredient_type="flour"))
+        for _ in range(15):
+            sim.tick(0.1)
+        remaining = [o.recipe_key for o in sim.orders]
+        self.assertIn("pepperoni", remaining)
+        self.assertNotIn("margherita", remaining)
+
+    def test_recipe_key_survives_serialization_round_trip(self):
+        sim = self._fresh()
+        sim.items.append(
+            Item(x=5, y=7, stage="processed", ingredient_type="flour", recipe_key="margherita")
+        )
+        d = sim.to_dict()
+        sim2 = FactorySim.from_dict(d)
+        tagged = [i for i in sim2.items if i.recipe_key == "margherita"]
+        self.assertEqual(len(tagged), 1)
+
+    def test_recipe_key_defaults_in_legacy_save_without_field(self):
+        sim = self._fresh()
+        sim.items.append(Item(x=5, y=7, stage="processed", ingredient_type="flour", recipe_key="margherita"))
+        d = sim.to_dict()
+        # Strip recipe_key to simulate a legacy save
+        for item in d["items"]:
+            item.pop("recipe_key", None)
+        sim2 = FactorySim.from_dict(d)
+        for item in sim2.items:
+            self.assertIsInstance(item.recipe_key, str)
+
+    def test_assembly_table_place_tile(self):
+        sim = self._fresh()
+        sim.place_tile(5, 5, ASSEMBLY_TABLE, 0)
+        self.assertEqual(sim.grid[5][5].kind, ASSEMBLY_TABLE)
+
+    def test_determinism_preserved_with_assembly_table(self):
+        """Simulation with an assembly table is still deterministic."""
+        def run(n: int) -> tuple:
+            s = FactorySim(seed=7)
+            s.grid[7][10] = Tile(ASSEMBLY_TABLE, rot=0)
+            for _ in range(n):
+                s.tick(0.1)
+            return (s.time, s.money, s.completed, s.research_points, len(s.items))
+
+        self.assertEqual(run(200), run(200))
 
 
 if __name__ == "__main__":

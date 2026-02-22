@@ -1533,106 +1533,125 @@
   ],
   "items": [
     {
-      "x": 16,
+      "x": 17,
       "y": 7,
       "progress": 0.5,
       "stage": "baked",
       "delivery_boost": 1.2,
-      "ingredient_type": "flour"
+      "ingredient_type": "flour",
+      "recipe_key": ""
+    },
+    {
+      "x": 15,
+      "y": 7,
+      "progress": 0.8999999999999999,
+      "stage": "baked",
+      "delivery_boost": 1.2,
+      "ingredient_type": "tomato",
+      "recipe_key": ""
     },
     {
       "x": 14,
       "y": 7,
-      "progress": 0.8999999999999999,
+      "progress": 0.2,
       "stage": "baked",
       "delivery_boost": 0.0,
-      "ingredient_type": "cheese"
+      "ingredient_type": "cheese",
+      "recipe_key": ""
     },
     {
-      "x": 13,
+      "x": 12,
       "y": 7,
-      "progress": 0.1,
-      "stage": "baked",
+      "progress": 0.6419522055059654,
+      "stage": "processed",
       "delivery_boost": 0.0,
-      "ingredient_type": "cheese"
+      "ingredient_type": "cheese",
+      "recipe_key": ""
     },
     {
       "x": 11,
       "y": 7,
-      "progress": 0.9999999999999999,
+      "progress": 0.4,
       "stage": "processed",
       "delivery_boost": 0.0,
-      "ingredient_type": "flour"
+      "ingredient_type": "pineapple",
+      "recipe_key": ""
     },
     {
-      "x": 10,
+      "x": 9,
       "y": 7,
-      "progress": 0.30000000000000004,
+      "progress": 0.7999999999999999,
       "stage": "processed",
       "delivery_boost": 0.0,
-      "ingredient_type": "flour"
+      "ingredient_type": "cheese",
+      "recipe_key": ""
     },
     {
       "x": 8,
       "y": 7,
-      "progress": 0.7,
+      "progress": 0.0,
       "stage": "processed",
       "delivery_boost": 0.0,
-      "ingredient_type": "tomato"
+      "ingredient_type": "tomato",
+      "recipe_key": ""
     },
     {
-      "x": 7,
+      "x": 6,
       "y": 7,
-      "progress": 0.08846221693690015,
+      "progress": 0.6,
       "stage": "raw",
       "delivery_boost": 0.0,
-      "ingredient_type": "flour"
+      "ingredient_type": "cheese",
+      "recipe_key": ""
     },
     {
-      "x": 5,
+      "x": 4,
       "y": 7,
-      "progress": 0.5,
+      "progress": 0.9999999999999999,
       "stage": "raw",
       "delivery_boost": 0.0,
-      "ingredient_type": "pepperoni"
+      "ingredient_type": "flour",
+      "recipe_key": ""
     },
     {
       "x": 3,
       "y": 7,
-      "progress": 0.8999999999999999,
+      "progress": 0.30000000000000004,
       "stage": "raw",
       "delivery_boost": 0.0,
-      "ingredient_type": "tomato"
+      "ingredient_type": "onion",
+      "recipe_key": ""
     },
     {
-      "x": 2,
+      "x": 1,
       "y": 7,
-      "progress": 0.2,
+      "progress": 0.7,
       "stage": "raw",
       "delivery_boost": 0.0,
-      "ingredient_type": "onion"
+      "ingredient_type": "ham",
+      "recipe_key": ""
     }
   ],
   "deliveries": [
     {
-      "mode": "drone",
-      "remaining": 2.0265748888114974,
-      "sla": 11.0,
-      "duration": 4.126574888811499,
+      "mode": "scooter",
+      "remaining": 1.1069340893385093,
+      "sla": 10.000000000000004,
+      "duration": 5.806934089338507,
       "recipe_key": "margherita",
       "reward": 12,
-      "elapsed": 2.1000000000000005
+      "elapsed": 3.1000000000000014
     }
   ],
   "orders": [],
-  "time": 30.000000000000156,
-  "spawn_timer": 1.2,
-  "order_spawn_timer": 2.0000000000000004,
-  "hygiene": 84.61687726118032,
+  "time": 60.00000000000058,
+  "spawn_timer": 0.6,
+  "order_spawn_timer": 4.000000000000002,
+  "hygiene": 65.581015946973,
   "bottleneck": 0,
-  "expansion_level": 1,
-  "expansion_progress": 10.790000000000028,
-  "research_points": 4.110000000000001,
+  "expansion_level": 2,
+  "expansion_progress": 0.8059999999999223,
+  "research_points": 11.169999999999996,
   "tech_tree": {
     "ovens": true,
     "turbo_oven": false,
@@ -1643,10 +1662,10 @@
     "priority_dispatch": false,
     "double_spawn": false
   },
-  "auto_bot_charge": 0.7999999999999644,
-  "completed": 3,
-  "ontime": 3,
-  "money": 36,
-  "waste": 2,
-  "last_hygiene_event": 22.60000000000005
+  "auto_bot_charge": 0.59999999999997,
+  "completed": 8,
+  "ontime": 8,
+  "money": 96,
+  "waste": 13,
+  "last_hygiene_event": 58.40000000000056
 }

@@ -576,18 +576,30 @@ class TestAssemblyTable(unittest.TestCase):
         if pepperoni_deliveries:
             self.assertEqual(pepperoni_deliveries[0].reward, 15)
 
-    def test_sink_falls_back_to_oldest_order_when_no_recipe_key(self):
+    def test_sink_rejects_untagged_item_when_order_queue_has_multiple_recipes(self):
         sim = self._fresh()
         sim.orders.clear()
         sim.orders.append(Order(recipe_key="margherita", remaining_sla=60.0, total_sla=60.0, reward=12))
         sim.orders.append(Order(recipe_key="pepperoni", remaining_sla=60.0, total_sla=60.0, reward=15))
-        # Untagged baked item — should consume the OLDEST order (margherita)
         sim.items.append(Item(x=17, y=7, progress=0.0, stage="baked", ingredient_type="flour"))
+        waste_before = sim.waste
         for _ in range(15):
             sim.tick(0.1)
         remaining = [o.recipe_key for o in sim.orders]
         self.assertIn("pepperoni", remaining)
-        self.assertNotIn("margherita", remaining)
+        self.assertIn("margherita", remaining)
+        self.assertEqual(sim.waste, waste_before + 1)
+
+    def test_sink_untagged_item_fulfills_when_all_orders_share_recipe(self):
+        sim = self._fresh()
+        sim.orders.clear()
+        sim.orders.append(Order(recipe_key="margherita", remaining_sla=60.0, total_sla=60.0, reward=12))
+        sim.orders.append(Order(recipe_key="margherita", remaining_sla=60.0, total_sla=60.0, reward=12))
+        sim.items.append(Item(x=17, y=7, progress=0.0, stage="baked", ingredient_type="flour"))
+        for _ in range(15):
+            sim.tick(0.1)
+        self.assertEqual(len(sim.orders), 1)
+        self.assertEqual(sim.orders[0].recipe_key, "margherita")
 
     def test_recipe_key_survives_serialization_round_trip(self):
         sim = self._fresh()

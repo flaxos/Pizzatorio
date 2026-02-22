@@ -171,6 +171,28 @@ class TestFactorySimTick(unittest.TestCase):
             self.sim.tick(0.1)
         self.assertLessEqual(self.sim.hygiene, 100.0)
 
+
+    def test_order_channel_helpers_respect_reputation_thresholds(self):
+        sim = FactorySim(seed=1)
+        sim.reputation = 0.0
+        self.assertTrue(sim.order_channel_is_unlocked("delivery"))
+        self.assertFalse(sim.order_channel_is_unlocked("eat_in"))
+        self.assertGreaterEqual(sim.order_channel_min_reputation("eat_in"), 25.0)
+        self.assertEqual(sim.unlocked_order_channels(), ["delivery"])
+
+    def test_set_order_channel_returns_false_when_locked(self):
+        sim = FactorySim(seed=1)
+        sim.reputation = 0.0
+        self.assertFalse(sim.set_order_channel("eat_in"))
+        self.assertEqual(sim.order_channel, "delivery")
+        self.assertIn("locked", sim.event_log[-1])
+
+    def test_set_order_channel_returns_true_after_reputation_unlock(self):
+        sim = FactorySim(seed=1)
+        sim.reputation = 40.0
+        self.assertTrue(sim.set_order_channel("eat_in"))
+        self.assertEqual(sim.order_channel, "eat_in")
+
     def test_research_unlocks_progression(self):
         sim = FactorySim(seed=1)
         sim.research_points = 12.0

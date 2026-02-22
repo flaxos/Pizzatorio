@@ -114,6 +114,16 @@ class GameUI:
         return targets[:3]
 
     def _subsections_for(self, section: str) -> List[str]:
+        if section == "Orders":
+            labels: List[str] = []
+            for channel in self.section_defaults.get("Orders", []):
+                key = channel.lower().replace("-", "_")
+                if self.sim.order_channel_is_unlocked(key):
+                    labels.append(channel)
+                else:
+                    min_rep = int(self.sim.order_channel_min_reputation(key))
+                    labels.append(f"{channel} (Rep {min_rep})")
+            return labels
         if section != "R&D":
             return list(self.section_defaults.get(section, []))
         labels = list(self.section_defaults["R&D"])
@@ -125,8 +135,13 @@ class GameUI:
         if subsection in self._subsections_for(self.active_section):
             self.active_subsection = subsection
             if self.active_section == "Orders":
-                self.order_channel = subsection.lower().replace("-", "_")
-                self.sim.set_order_channel(self.order_channel)
+                label = subsection.split(" (", 1)[0]
+                requested_channel = label.lower().replace("-", "_")
+                if self.sim.set_order_channel(requested_channel):
+                    self.order_channel = requested_channel
+                else:
+                    selected_label = self.order_channel.replace("_", "-").title()
+                    self.active_subsection = selected_label
             elif self.active_section == "Commercials":
                 strategy = subsection.lower()
                 if self.sim.set_commercial_strategy(strategy):

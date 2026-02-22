@@ -241,17 +241,31 @@ class FactorySim:
         self.event_log.append(message)
         self.event_log = self.event_log[-12:]
 
-    def set_order_channel(self, channel: str) -> None:
+    def order_channel_is_unlocked(self, channel: str) -> bool:
         if channel not in ORDER_CHANNELS:
-            return
+            return False
+        return self.reputation >= self.order_channel_min_reputation(channel)
+
+    def order_channel_min_reputation(self, channel: str) -> float:
+        if channel not in ORDER_CHANNELS:
+            return 0.0
         channel_cfg = ORDER_CHANNELS[channel]
-        min_reputation = max(0.0, float(channel_cfg.get("min_reputation", 0.0)))
-        if self.reputation < min_reputation:
+        return max(0.0, float(channel_cfg.get("min_reputation", 0.0)))
+
+    def unlocked_order_channels(self) -> List[str]:
+        return [channel for channel in ORDER_CHANNELS if self.order_channel_is_unlocked(channel)]
+
+    def set_order_channel(self, channel: str) -> bool:
+        if channel not in ORDER_CHANNELS:
+            return False
+        min_reputation = self.order_channel_min_reputation(channel)
+        if not self.order_channel_is_unlocked(channel):
             self._log_event(f"Order channel {channel} locked (need rep {min_reputation:.0f})")
-            return
+            return False
         if channel != self.order_channel:
             self._log_event(f"Order channel switched to {channel}")
         self.order_channel = channel
+        return True
 
     def set_commercial_strategy(self, strategy: str, *, charge: bool = True) -> bool:
         if strategy not in COMMERCIALS:

@@ -88,8 +88,9 @@ class TestFactorySimInit(unittest.TestCase):
             self.assertEqual(len(row), 20)
 
     def test_initial_state(self):
+        from config import STARTING_MONEY
         self.assertEqual(self.sim.time, 0.0)
-        self.assertEqual(self.sim.money, 0)
+        self.assertEqual(self.sim.money, STARTING_MONEY)
         self.assertEqual(self.sim.completed, 0)
         self.assertEqual(self.sim.hygiene, 100.0)
 

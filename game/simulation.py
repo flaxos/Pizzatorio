@@ -24,6 +24,7 @@ from config import (
     EXPANSION_BASE_NEEDED,
     EXPANSION_DELIVERY_BONUS,
     EXPANSION_PROGRESS_RATE,
+    FRANCHISE_EXPANSION_BONUS,
     GRID_H,
     GRID_W,
     HYGIENE_EVENT_CHANCE,
@@ -36,14 +37,20 @@ from config import (
     ITEM_STAGE_ORDER,
     LATE_DELIVERY_PENALTY,
     MACHINE,
+    MACHINE_BUILD_COSTS,
     OVEN,
     PRECISION_COOKING_WASTE_REFUND,
     PRIORITY_DISPATCH_LATE_MULTIPLIER,
     PROCESS_FLOW,
     PROCESSOR,
+    REPUTATION_GAIN_ONTIME,
+    REPUTATION_LOSS_LATE,
+    REPUTATION_STARTING,
     SAVE_FILE,
+    SECOND_LOCATION_REWARD_BONUS,
     SINK,
     SOURCE,
+    STARTING_MONEY,
     TECH_UNLOCK_COSTS,
     TURBO_BELT_BONUS,
     TURBO_OVEN_SPEED_BONUS,
@@ -86,9 +93,10 @@ class FactorySim:
         self.auto_bot_charge: float = 0.0
         self.completed: int = 0
         self.ontime: int = 0
-        self.money: int = 0
+        self.money: int = STARTING_MONEY
         self.waste: int = 0
         self.last_hygiene_event: float = 0.0
+        self.reputation: float = REPUTATION_STARTING
 
         self.place_static_world()
 
@@ -130,6 +138,7 @@ class FactorySim:
             "money": self.money,
             "waste": self.waste,
             "last_hygiene_event": self.last_hygiene_event,
+            "reputation": self.reputation,
         }
 
     @classmethod
@@ -191,9 +200,10 @@ class FactorySim:
         sim.auto_bot_charge = float(data.get("auto_bot_charge", 0.0))
         sim.completed = int(data.get("completed", 0))
         sim.ontime = int(data.get("ontime", 0))
-        sim.money = int(data.get("money", 0))
+        sim.money = int(data.get("money", STARTING_MONEY))
         sim.waste = int(data.get("waste", 0))
         sim.last_hygiene_event = float(data.get("last_hygiene_event", 0.0))
+        sim.reputation = float(data.get("reputation", REPUTATION_STARTING))
         return sim
 
     @staticmethod
@@ -274,12 +284,18 @@ class FactorySim:
             return
         if kind == EMPTY:
             self.grid[y][x] = Tile()
-        else:
-            if kind == OVEN and not self.tech_tree.get("ovens", False):
+            return
+        if kind == OVEN and not self.tech_tree.get("ovens", False):
+            return
+        if kind == BOT_DOCK and not self.tech_tree.get("bots", False):
+            return
+        # Only charge for building on empty ground; replacing an existing tile is free
+        if self.grid[y][x].kind == EMPTY:
+            cost = MACHINE_BUILD_COSTS.get(kind, 0)
+            if self.money < cost:
                 return
-            if kind == BOT_DOCK and not self.tech_tree.get("bots", False):
-                return
-            self.grid[y][x] = Tile(kind=kind, rot=rot % 4)
+            self.money -= cost
+        self.grid[y][x] = Tile(kind=kind, rot=rot % 4)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -327,6 +343,9 @@ class FactorySim:
     def _enqueue_delivery(self, order: Order) -> None:
         mode = self.rng.choice(["drone", "scooter"])
         travel = self.rng.uniform(3.5, 7.5) if mode == "drone" else self.rng.uniform(5.0, 10.0)
+        reward = order.reward
+        if self.tech_tree.get("second_location", False):
+            reward = int(reward * (1.0 + SECOND_LOCATION_REWARD_BONUS))
         self.deliveries.append(
             Delivery(
                 mode=mode,
@@ -335,7 +354,7 @@ class FactorySim:
                 sla=max(2.5, order.remaining_sla),
                 duration=travel,
                 recipe_key=order.recipe_key,
-                reward=order.reward,
+                reward=reward,
             )
         )
 
@@ -460,7 +479,8 @@ class FactorySim:
                 self.auto_bot_charge -= 1.0
 
         # Expansion tier progression
-        self.expansion_progress += (dt * EXPANSION_PROGRESS_RATE) + (self.completed * EXPANSION_DELIVERY_BONUS)
+        expansion_delivery_mult = FRANCHISE_EXPANSION_BONUS if self.tech_tree.get("franchise_system", False) else 1.0
+        self.expansion_progress += (dt * EXPANSION_PROGRESS_RATE) + (self.completed * EXPANSION_DELIVERY_BONUS * expansion_delivery_mult)
         needed = EXPANSION_BASE_NEEDED * self.expansion_level
         if self.expansion_progress >= needed:
             self.expansion_progress -= needed
@@ -489,8 +509,10 @@ class FactorySim:
                 if d.elapsed <= d.sla:
                     self.ontime += 1
                     self.money += d.reward
+                    self.reputation = clamp(self.reputation + REPUTATION_GAIN_ONTIME, 0.0, 100.0)
                 else:
                     self.money += int(d.reward * late_penalty)
+                    self.reputation = clamp(self.reputation - REPUTATION_LOSS_LATE, 0.0, 100.0)
             else:
                 next_deliveries.append(d)
         self.deliveries = next_deliveries

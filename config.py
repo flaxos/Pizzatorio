@@ -73,6 +73,9 @@ TECH_UNLOCK_COSTS: dict[str, float] = {
     "turbo_belts": 55.0,
     "priority_dispatch": 85.0,
     "double_spawn": 140.0,
+    # Expansion branch
+    "second_location": 180.0,
+    "franchise_system": 320.0,
 }
 
 # ---------------------------------------------------------------------------
@@ -100,6 +103,32 @@ ASSEMBLY_TABLE_SPEED: float = 0.60    # progress speed while tagging at assembly
 BOT_AUTO_CHARGE_RATE: float = 0.18     # auto-bot charge accumulation per dock per second
 BOT_AUTO_DELIVERY_REDUCTION: float = 0.8  # seconds reduced from target delivery per bot charge
 LATE_DELIVERY_PENALTY: float = 0.5     # fraction of reward paid for late deliveries
+
+# ---------------------------------------------------------------------------
+# Economy — machine placement costs and starting capital
+# ---------------------------------------------------------------------------
+STARTING_MONEY: int = 1000             # seed capital given to player at game start
+
+MACHINE_BUILD_COSTS: dict[str, int] = {
+    "conveyor":        10,
+    "processor":       80,
+    "oven":           150,
+    "bot_dock":       200,
+    "assembly_table": 120,
+}
+
+# ---------------------------------------------------------------------------
+# Reputation — tracks player standing with customers (0–100)
+# ---------------------------------------------------------------------------
+REPUTATION_STARTING: float = 50.0      # initial reputation score
+REPUTATION_GAIN_ONTIME: float = 0.8    # reputation gained per on-time delivery
+REPUTATION_LOSS_LATE: float = 1.5      # reputation lost per late delivery
+
+# ---------------------------------------------------------------------------
+# Expansion tech effects
+# ---------------------------------------------------------------------------
+SECOND_LOCATION_REWARD_BONUS: float = 0.15   # +15% delivery reward when unlocked
+FRANCHISE_EXPANSION_BONUS: float = 2.0       # multiplier on delivery-driven expansion progress
 
 # ---------------------------------------------------------------------------
 # Ingredient types (canonical item_type identifiers for spawned items)

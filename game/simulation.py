@@ -31,6 +31,7 @@ from config import (
     HYGIENE_EVENT_COOLDOWN,
     HYGIENE_RECOVERY_RATE,
     HYGIENE_TRAINING_RECOVERY_BONUS,
+    INGREDIENT_PURCHASE_COSTS,
     INGREDIENT_SPAWN_WEIGHTS,
     INGREDIENT_TYPES,
     ITEM_SPAWN_INTERVAL,
@@ -546,6 +547,11 @@ class FactorySim:
         all_types = list(INGREDIENT_SPAWN_WEIGHTS.keys())
         weights = [INGREDIENT_SPAWN_WEIGHTS[t] for t in all_types]
         ingredient_type = self.rng.choices(all_types, weights=weights, k=1)[0]
+        ingredient_cost = max(1, int(INGREDIENT_PURCHASE_COSTS.get(ingredient_type, 1)))
+        if self.money < ingredient_cost:
+            return
+        self.money -= ingredient_cost
+        self.total_spend += ingredient_cost
         self.items.append(Item(1, 7, 0.0, stage="raw", ingredient_type=ingredient_type))
 
     def _enqueue_delivery(self, order: Order) -> None:

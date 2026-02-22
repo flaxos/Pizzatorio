@@ -148,3 +148,18 @@ INGREDIENT_SPAWN_WEIGHTS: dict[str, float] = {
     "olive": 0.7,
     "pineapple": 0.5,
 }
+
+# Per-item purchase cost when sourcing raw ingredients from SOURCE.
+INGREDIENT_PURCHASE_COSTS: dict[str, int] = {
+    "flour": 2,
+    "tomato": 2,
+    "cheese": 3,
+    "pepperoni": 4,
+    "ham": 4,
+    "chicken": 4,
+    "mushroom": 3,
+    "pepper": 3,
+    "onion": 2,
+    "olive": 3,
+    "pineapple": 3,
+}

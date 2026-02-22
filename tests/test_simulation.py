@@ -790,6 +790,23 @@ class TestOrderChannels(unittest.TestCase):
         self.assertEqual(len(sim.deliveries), 0)
         self.assertGreaterEqual(sim.completed, 1)
 
+
+    def test_available_recipes_exclude_research_locked_entries(self):
+        sim = FactorySim(seed=4)
+        sim.expansion_level = 6
+
+        available_before = sim._available_recipes(channel_key="delivery")
+
+        self.assertNotIn("supreme", available_before)
+
+    def test_available_recipes_include_entries_once_research_unlocks(self):
+        sim = FactorySim(seed=4)
+        sim.expansion_level = 6
+        sim.tech_tree["precision_cooking"] = True
+
+        available_after = sim._available_recipes(channel_key="delivery")
+
+        self.assertIn("supreme", available_after)
     def test_order_channel_round_trip(self):
         sim = FactorySim(seed=4)
         sim.set_order_channel("eat_in")

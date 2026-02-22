@@ -282,7 +282,8 @@
     "cook_time": 8.1,
     "cook_temp": "high",
     "difficulty": 4,
-    "demand_weight": 1.5
+    "demand_weight": 1.5,
+    "required_research": "turbo_oven"
   },
   "garlic_chicken": {
     "display_name": "Garlic Chicken",
@@ -303,7 +304,8 @@
     "cook_time": 8.5,
     "cook_temp": "high",
     "difficulty": 4,
-    "demand_weight": 1.2
+    "demand_weight": 1.2,
+    "required_research": "hygiene_training"
   },
   "corn_chipotle": {
     "display_name": "Corn Chipotle",
@@ -341,7 +343,8 @@
     "cook_time": 8.0,
     "cook_temp": "high",
     "difficulty": 4,
-    "demand_weight": 0.5
+    "demand_weight": 0.5,
+    "required_research": "priority_dispatch"
   },
   "supreme": {
     "display_name": "Supreme",
@@ -362,7 +365,8 @@
     "cook_time": 9.1,
     "cook_temp": "high",
     "difficulty": 4,
-    "demand_weight": 1.0
+    "demand_weight": 1.0,
+    "required_research": "precision_cooking"
   },
   "mushroom_truffle": {
     "display_name": "Mushroom Truffle",
@@ -383,7 +387,8 @@
     "cook_time": 8.9,
     "cook_temp": "medium",
     "difficulty": 4,
-    "demand_weight": 0.7
+    "demand_weight": 0.7,
+    "required_research": "precision_cooking"
   },
   "surf_turf": {
     "display_name": "Surf & Turf",
@@ -404,7 +409,8 @@
     "cook_time": 8.7,
     "cook_temp": "high",
     "difficulty": 4,
-    "demand_weight": 0.6
+    "demand_weight": 0.6,
+    "required_research": "second_location"
   },
   "rocket_parma": {
     "display_name": "Rocket Parma",
@@ -425,7 +431,8 @@
     "cook_time": 8.2,
     "cook_temp": "high",
     "difficulty": 5,
-    "demand_weight": 0.8
+    "demand_weight": 0.8,
+    "required_research": "franchise_system"
   },
   "green_goddess": {
     "display_name": "Green Goddess",
@@ -446,7 +453,8 @@
     "cook_time": 8.6,
     "cook_temp": "medium",
     "difficulty": 5,
-    "demand_weight": 0.7
+    "demand_weight": 0.7,
+    "required_research": "franchise_system"
   },
   "volcano_beef": {
     "display_name": "Volcano Beef",
@@ -466,7 +474,8 @@
     "cook_time": 9.0,
     "cook_temp": "high",
     "difficulty": 5,
-    "demand_weight": 0.7
+    "demand_weight": 0.7,
+    "required_research": "franchise_system"
   },
   "sausage_supreme": {
     "display_name": "Sausage Supreme",
@@ -487,6 +496,7 @@
     "cook_time": 9.2,
     "cook_temp": "high",
     "difficulty": 5,
-    "demand_weight": 0.6
+    "demand_weight": 0.6,
+    "required_research": "franchise_system"
   }
 }

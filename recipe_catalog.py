@@ -29,6 +29,7 @@ class RecipeDefinition:
     cheese: str = "shredded_cheese"
     toppings: tuple[str, ...] = ()
     post_oven: tuple[str, ...] = ()
+    required_research: str = ""
 
     def to_runtime_dict(self) -> Dict[str, str | int | float | List[str]]:
         return {
@@ -45,6 +46,7 @@ class RecipeDefinition:
             "cheese": self.cheese,
             "toppings": list(self.toppings),
             "post_oven": list(self.post_oven),
+            "required_research": self.required_research,
         }
 
 
@@ -158,6 +160,7 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
     cheese = entry.get("cheese", "shredded_cheese")
     toppings = entry.get("toppings", [])
     post_oven = entry.get("post_oven", [])
+    required_research = entry.get("required_research", "")
 
     if not isinstance(base, str) or not isinstance(sauce, str) or not isinstance(cheese, str):
         return None
@@ -167,6 +170,11 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
     parsed_toppings = _coerce_str_list(toppings)
     parsed_post_oven = _coerce_str_list(post_oven)
     if parsed_toppings is None or parsed_post_oven is None:
+        return None
+    if not isinstance(required_research, str):
+        return None
+    required_research = required_research.strip()
+    if required_research and not _is_valid_item_id(required_research):
         return None
     if not parsed_toppings or len(parsed_toppings) > MAX_TOPPINGS:
         return None
@@ -196,6 +204,7 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
         cheese=cheese,
         toppings=parsed_toppings,
         post_oven=parsed_post_oven,
+        required_research=required_research,
     )
 
 

@@ -50,6 +50,8 @@ from config import (
     REPUTATION_STARTING,
     SAVE_FILE,
     SECOND_LOCATION_REWARD_BONUS,
+    SECOND_LOCATION_ORDER_CAPACITY_BONUS,
+    SECOND_LOCATION_SPAWN_INTERVAL_MULTIPLIER,
     SINK,
     SOURCE,
     STARTING_MONEY,
@@ -496,6 +498,8 @@ class FactorySim:
             return
         channel_cfg = ORDER_CHANNELS.get(self.order_channel, {})
         max_active_orders = max(1, int(channel_cfg.get("max_active_orders", 6)))
+        if self.tech_tree.get("second_location", False):
+            max_active_orders += max(0, SECOND_LOCATION_ORDER_CAPACITY_BONUS)
         if len(self.orders) >= max_active_orders:
             return
         commercial_cfg = COMMERCIALS.get(self.commercial_strategy, {})
@@ -620,6 +624,8 @@ class FactorySim:
         channel_cfg = ORDER_CHANNELS.get(self.order_channel, {})
         channel_spawn_multiplier = max(0.1, float(channel_cfg.get("spawn_interval_multiplier", 1.0)))
         effective_order_spawn_interval = (ORDER_SPAWN_INTERVAL * channel_spawn_multiplier) / demand_multiplier
+        if self.tech_tree.get("second_location", False):
+            effective_order_spawn_interval *= SECOND_LOCATION_SPAWN_INTERVAL_MULTIPLIER
         if self.spawn_timer >= effective_spawn_interval:
             self.spawn_timer = 0.0
             self._spawn_item()

@@ -115,6 +115,8 @@ MISSED_ORDER_CASH_PENALTY_MULTIPLIER: float = 0.25  # fraction of reward charged
 # Expansion tech effects
 # ---------------------------------------------------------------------------
 SECOND_LOCATION_REWARD_BONUS: float = 0.15   # +15% delivery reward when unlocked
+SECOND_LOCATION_SPAWN_INTERVAL_MULTIPLIER: float = 0.85  # faster order intake when multi-shop is unlocked
+SECOND_LOCATION_ORDER_CAPACITY_BONUS: int = 2            # extra concurrent active orders
 FRANCHISE_EXPANSION_BONUS: float = 2.0       # multiplier on delivery-driven expansion progress
 
 # ---------------------------------------------------------------------------

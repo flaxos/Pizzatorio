@@ -177,6 +177,20 @@ class TestFactorySimTick(unittest.TestCase):
         sim.tick(0.01)
         self.assertTrue(sim.tech_tree["ovens"])
 
+    def test_research_focus_prioritises_unlock(self):
+        sim = FactorySim(seed=1)
+        sim.set_research_focus("priority_dispatch")
+        sim.research_points = 100.0
+        sim.tick(0.01)
+        self.assertTrue(sim.tech_tree["priority_dispatch"])
+
+    def test_cycle_research_focus_skips_unlocked(self):
+        sim = FactorySim(seed=1)
+        sim.tech_tree["ovens"] = True
+        focus = sim.cycle_research_focus()
+        self.assertNotEqual(focus, "ovens")
+        self.assertEqual(sim.research_focus, focus)
+
     def test_expansion_level_increments(self):
         from config import EXPANSION_BASE_NEEDED
         sim = FactorySim(seed=1)
@@ -227,6 +241,7 @@ class TestFactorySimSerialisation(unittest.TestCase):
         self.assertEqual(sim.money, sim2.money)
         self.assertEqual(sim.completed, sim2.completed)
         self.assertEqual(sim.tech_tree, sim2.tech_tree)
+        self.assertEqual(sim.research_focus, sim2.research_focus)
         self.assertEqual(len(sim.items), len(sim2.items))
 
     def test_item_ingredient_type_survives_round_trip(self):

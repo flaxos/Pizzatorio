@@ -105,6 +105,7 @@ class FactorySim:
         self.reputation: float = REPUTATION_STARTING
         self.order_channel: str = "delivery" if "delivery" in ORDER_CHANNELS else next(iter(ORDER_CHANNELS))
         self.commercial_strategy: str = next(iter(COMMERCIALS))
+        self.research_focus: str = ""
 
         self.place_static_world()
 
@@ -149,6 +150,7 @@ class FactorySim:
             "reputation": self.reputation,
             "order_channel": self.order_channel,
             "commercial_strategy": self.commercial_strategy,
+            "research_focus": self.research_focus,
         }
 
     @classmethod
@@ -216,6 +218,7 @@ class FactorySim:
         sim.reputation = float(data.get("reputation", REPUTATION_STARTING))
         sim.set_order_channel(str(data.get("order_channel", "delivery")))
         sim.set_commercial_strategy(str(data.get("commercial_strategy", sim.commercial_strategy)), charge=False)
+        sim.set_research_focus(str(data.get("research_focus", "")))
         return sim
 
     def set_order_channel(self, channel: str) -> None:
@@ -234,6 +237,36 @@ class FactorySim:
             self.money -= activation_cost
         self.commercial_strategy = strategy
         return True
+
+    def set_research_focus(self, tech: str) -> bool:
+        if not tech:
+            self.research_focus = ""
+            return True
+        if tech not in TECH_UNLOCK_COSTS or self.tech_tree.get(tech, False):
+            return False
+        self.research_focus = tech
+        return True
+
+    def cycle_research_focus(self) -> str:
+        locked = [tech for tech in TECH_UNLOCK_COSTS if not self.tech_tree.get(tech, False)]
+        if not locked:
+            self.research_focus = ""
+            return ""
+        if self.research_focus not in locked:
+            self.research_focus = locked[0]
+            return self.research_focus
+        idx = locked.index(self.research_focus)
+        self.research_focus = locked[(idx + 1) % len(locked)]
+        return self.research_focus
+
+    def try_unlock_research_focus(self) -> bool:
+        if self.research_focus and not self.tech_tree.get(self.research_focus, False):
+            focus_cost = TECH_UNLOCK_COSTS.get(self.research_focus, float("inf"))
+            if self.research_points >= focus_cost:
+                self.tech_tree[self.research_focus] = True
+                self.research_focus = ""
+                return True
+        return False
 
     @staticmethod
     def _normalize_item_state(raw_item: Dict) -> Dict:
@@ -335,6 +368,8 @@ class FactorySim:
     # ------------------------------------------------------------------
 
     def _process_research(self) -> None:
+        if self.try_unlock_research_focus():
+            return
         for tech, cost in TECH_UNLOCK_COSTS.items():
             if not self.tech_tree.get(tech, False) and self.research_points >= cost:
                 self.tech_tree[tech] = True

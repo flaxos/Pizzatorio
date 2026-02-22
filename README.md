@@ -21,6 +21,7 @@ A lightweight factory/automation prototype designed to run in **Pydroid on Andro
   - Expansion tiers increase as your factory runs and fulfills demand.
 - UI scaffolding includes menu + submenu chips (`Build`, `Orders`, `R&D`, `Commercials`, `Info`) and quick order-channel context (`Delivery`, `Takeaway`, `Eat-in`) for the upcoming overhaul.
 - Commercial submenu actions are now wired to lightweight campaign strategies (`Campaigns`, `Promos`, `Franchise`) that charge cash once on activation and modify order demand/reward behavior.
+- Order channels now carry distinct late-delivery and missed-order penalty tuning (data-driven in `data/order_channels.json`) so Delivery/Takeaway/Eat-in are economically different playstyles.
 - Landscape-aware layout adds a right-side operations panel on wide displays (including Pydroid landscape) to keep controls and metrics visible.
 - `Info` submenu now shows context-aware data: KPI snapshot, recent event log, and economy telemetry (revenue/spend/net + waste) to reduce UI dead-ends while systems are being wired.
 - KPI panel updates live:

@@ -371,6 +371,7 @@ class FactorySim:
             "duration": float(delivery.get("duration", fallback_remaining)),
             "recipe_key": recipe_key,
             "reward": int(delivery.get("reward", RECIPES[recipe_key]["sell_price"])),
+            "late_reward_multiplier": float(delivery.get("late_reward_multiplier", 1.0)),
         }
 
     @staticmethod
@@ -536,6 +537,7 @@ class FactorySim:
         reward = order.reward
         if self.tech_tree.get("second_location", False):
             reward = int(reward * (1.0 + SECOND_LOCATION_REWARD_BONUS))
+        late_reward_multiplier = max(0.1, float(channel_cfg.get("late_reward_multiplier", 1.0)))
         self.deliveries.append(
             Delivery(
                 mode=mode,
@@ -545,6 +547,7 @@ class FactorySim:
                 duration=travel,
                 recipe_key=order.recipe_key,
                 reward=reward,
+                late_reward_multiplier=late_reward_multiplier,
             )
         )
 
@@ -702,7 +705,9 @@ class FactorySim:
                 continue
 
             self.reputation = clamp(self.reputation - REPUTATION_LOSS_MISSED_ORDER, 0.0, 100.0)
-            penalty = int(round(max(0.0, float(order.reward)) * MISSED_ORDER_CASH_PENALTY_MULTIPLIER))
+            channel_cfg = ORDER_CHANNELS.get(order.channel_key, ORDER_CHANNELS.get(self.order_channel, {}))
+            missed_penalty_multiplier = max(0.1, float(channel_cfg.get("missed_order_penalty_multiplier", 1.0)))
+            penalty = int(round(max(0.0, float(order.reward)) * MISSED_ORDER_CASH_PENALTY_MULTIPLIER * missed_penalty_multiplier))
             charged = min(self.money, penalty)
             self.money -= charged
             self.total_spend += charged
@@ -727,7 +732,7 @@ class FactorySim:
                     self.total_revenue += d.reward
                     self.reputation = clamp(self.reputation + REPUTATION_GAIN_ONTIME, 0.0, 100.0)
                 else:
-                    late_reward = int(d.reward * late_penalty)
+                    late_reward = int(d.reward * late_penalty * max(0.1, d.late_reward_multiplier))
                     self.money += late_reward
                     self.total_revenue += late_reward
                     self.reputation = clamp(self.reputation - REPUTATION_LOSS_LATE, 0.0, 100.0)

@@ -44,6 +44,7 @@ class Delivery:
     recipe_key: str
     reward: int
     elapsed: float = 0.0
+    late_reward_multiplier: float = 1.0
 
 
 @dataclass

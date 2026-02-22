@@ -22,6 +22,8 @@ class OrderChannelDefinition:
     min_recipe_difficulty: int = 1
     max_recipe_difficulty: int = 5
     max_active_orders: int = 6
+    late_reward_multiplier: float = 1.0
+    missed_order_penalty_multiplier: float = 1.0
 
     def to_runtime_dict(self) -> Dict[str, str | float | List[str]]:
         return {
@@ -34,6 +36,8 @@ class OrderChannelDefinition:
             "min_recipe_difficulty": self.min_recipe_difficulty,
             "max_recipe_difficulty": self.max_recipe_difficulty,
             "max_active_orders": self.max_active_orders,
+            "late_reward_multiplier": self.late_reward_multiplier,
+            "missed_order_penalty_multiplier": self.missed_order_penalty_multiplier,
         }
 
 
@@ -49,6 +53,8 @@ DEFAULT_ORDER_CHANNELS: Dict[str, OrderChannelDefinition] = {
         min_recipe_difficulty=1,
         max_recipe_difficulty=5,
         max_active_orders=8,
+        late_reward_multiplier=1.0,
+        missed_order_penalty_multiplier=1.0,
     ),
     "takeaway": OrderChannelDefinition(
         key="takeaway",
@@ -61,6 +67,8 @@ DEFAULT_ORDER_CHANNELS: Dict[str, OrderChannelDefinition] = {
         min_recipe_difficulty=1,
         max_recipe_difficulty=3,
         max_active_orders=6,
+        late_reward_multiplier=0.9,
+        missed_order_penalty_multiplier=0.8,
     ),
     "eat_in": OrderChannelDefinition(
         key="eat_in",
@@ -73,6 +81,8 @@ DEFAULT_ORDER_CHANNELS: Dict[str, OrderChannelDefinition] = {
         min_recipe_difficulty=2,
         max_recipe_difficulty=5,
         max_active_orders=4,
+        late_reward_multiplier=0.7,
+        missed_order_penalty_multiplier=1.25,
     ),
 }
 
@@ -104,6 +114,8 @@ def _parse_channel_entry(key: str, entry: Dict[str, Any]) -> OrderChannelDefinit
     min_recipe_difficulty = entry.get("min_recipe_difficulty", 1)
     max_recipe_difficulty = entry.get("max_recipe_difficulty", 5)
     max_active_orders = entry.get("max_active_orders", 6)
+    late_reward_multiplier = entry.get("late_reward_multiplier", 1.0)
+    missed_order_penalty_multiplier = entry.get("missed_order_penalty_multiplier", 1.0)
 
     if not isinstance(display_name, str) or not display_name.strip():
         return None
@@ -127,6 +139,10 @@ def _parse_channel_entry(key: str, entry: Dict[str, Any]) -> OrderChannelDefinit
         return None
     if max_active_orders < 1:
         return None
+    if not _is_positive_number(late_reward_multiplier):
+        return None
+    if not _is_positive_number(missed_order_penalty_multiplier):
+        return None
 
     parsed_modes = _coerce_delivery_modes(delivery_modes)
     if parsed_modes is None:
@@ -143,6 +159,8 @@ def _parse_channel_entry(key: str, entry: Dict[str, Any]) -> OrderChannelDefinit
         min_recipe_difficulty=min_recipe_difficulty,
         max_recipe_difficulty=max_recipe_difficulty,
         max_active_orders=max_active_orders,
+        late_reward_multiplier=float(late_reward_multiplier),
+        missed_order_penalty_multiplier=float(missed_order_penalty_multiplier),
     )
 
 

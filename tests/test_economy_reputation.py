@@ -9,8 +9,10 @@ from config import (
     CONVEYOR,
     EMPTY,
     FRANCHISE_EXPANSION_BONUS,
+    LATE_DELIVERY_PENALTY,
     MACHINE_BUILD_COSTS,
     OVEN,
+    MISSED_ORDER_CASH_PENALTY_MULTIPLIER,
     PROCESSOR,
     REPUTATION_GAIN_ONTIME,
     REPUTATION_LOSS_LATE,
@@ -21,6 +23,7 @@ from config import (
     TECH_UNLOCK_COSTS,
 )
 from game import FactorySim
+from game.simulation import ORDER_CHANNELS
 from game.entities import Delivery, Item, Order, Tile
 
 
@@ -235,6 +238,24 @@ class TestReputation(unittest.TestCase):
         sim.tick(0.1)
         self.assertLess(sim.reputation, rep_before)
 
+    def test_late_delivery_uses_channel_late_reward_multiplier(self):
+        sim = self._sim()
+        order = Order(recipe_key="margherita", remaining_sla=30.0, total_sla=30.0, reward=20, channel_key="takeaway")
+        sim._enqueue_delivery(order)
+        delivery = sim.deliveries[-1]
+        delivery.mode = "drone"
+        delivery.remaining = 0.05
+        delivery.elapsed = 25.0
+        delivery.sla = 10.0
+
+        money_before = sim.money
+        sim.tick(0.1)
+
+        late_penalty = LATE_DELIVERY_PENALTY
+        channel_mult = ORDER_CHANNELS["takeaway"]["late_reward_multiplier"]
+        expected_reward = int(20 * late_penalty * channel_mult)
+        self.assertEqual(sim.money, money_before + expected_reward)
+
     def test_reputation_gain_equals_config_constant(self):
         sim = self._sim()
         rep_before = sim.reputation
@@ -296,6 +317,25 @@ class TestReputation(unittest.TestCase):
         self.assertAlmostEqual(sim.reputation, rep_before - REPUTATION_LOSS_MISSED_ORDER, places=5)
         self.assertEqual(sim.money, money_before - 5)
         self.assertEqual(sim.total_spend, 5)
+
+    def test_missed_order_penalty_uses_channel_multiplier(self):
+        sim = self._sim()
+        sim.money = 100
+        sim.orders = [
+            Order(
+                recipe_key="margherita",
+                remaining_sla=0.01,
+                total_sla=0.01,
+                reward=20,
+                channel_key="eat_in",
+            )
+        ]
+
+        sim.tick(0.1)
+
+        channel_mult = ORDER_CHANNELS["eat_in"]["missed_order_penalty_multiplier"]
+        expected_penalty = int(round(20 * MISSED_ORDER_CASH_PENALTY_MULTIPLIER * channel_mult))
+        self.assertEqual(sim.money, 100 - expected_penalty)
 
     def test_missed_order_penalty_cannot_overdraft_cash(self):
         sim = self._sim()

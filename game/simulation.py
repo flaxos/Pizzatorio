@@ -616,7 +616,9 @@ class FactorySim:
         self._ensure_active_commercial_strategy_is_unlocked()
         commercial_cfg = COMMERCIALS.get(self.commercial_strategy, {})
         demand_multiplier = max(0.1, float(commercial_cfg.get("demand_multiplier", 1.0)))
-        effective_order_spawn_interval = ORDER_SPAWN_INTERVAL / demand_multiplier
+        channel_cfg = ORDER_CHANNELS.get(self.order_channel, {})
+        channel_spawn_multiplier = max(0.1, float(channel_cfg.get("spawn_interval_multiplier", 1.0)))
+        effective_order_spawn_interval = (ORDER_SPAWN_INTERVAL * channel_spawn_multiplier) / demand_multiplier
         if self.spawn_timer >= effective_spawn_interval:
             self.spawn_timer = 0.0
             self._spawn_item()

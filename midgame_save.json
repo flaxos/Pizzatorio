@@ -1660,12 +1660,15 @@
     "hygiene_training": false,
     "turbo_belts": false,
     "priority_dispatch": false,
-    "double_spawn": false
+    "double_spawn": false,
+    "second_location": false,
+    "franchise_system": false
   },
   "auto_bot_charge": 0.59999999999997,
   "completed": 8,
   "ontime": 8,
-  "money": 96,
+  "money": 1096,
   "waste": 13,
-  "last_hygiene_event": 58.40000000000056
+  "last_hygiene_event": 58.40000000000056,
+  "reputation": 56.39999999999998
 }

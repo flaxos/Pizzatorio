@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -28,23 +30,50 @@ except Exception:
     pygame = None
 
 
+@dataclass
+class RuntimeLayout:
+    viewport_w: int
+    viewport_h: int
+    safe_top: int
+    safe_bottom: int
+    hud_h: int
+    toolbar_h: int
+    panel_h: int
+    side_panel_w: int
+    play_w: int
+    play_h: int
+    cell_size: int
+    grid_px_w: int
+    grid_px_h: int
+    grid_x: int
+    grid_y: int
+    panel_y: int
+
+
 class GameUI:
     def __init__(self, sim: FactorySim):
         if pygame is None:
             raise RuntimeError("pygame is required for graphical mode")
         pygame.init()
         self.sim = sim
-        self.grid_px_w = GRID_W * CELL
-        self.grid_px_h = GRID_H * CELL
-        self.panel_h = 190
+
+        self.display_mode = self._select_display_mode()
+        self.layout: RuntimeLayout | None = None
 
         display = pygame.display.Info()
-        self.landscape = display.current_w >= display.current_h
-        self.sidebar_w = 340 if self.landscape else 0
-        self.window_w = self.grid_px_w + self.sidebar_w
-        self.window_h = self.grid_px_h + self.panel_h
+        self.physical_viewport = (display.current_w, display.current_h)
 
-        self.screen = pygame.display.set_mode((self.window_w, self.window_h))
+        if self.display_mode == "mobile_fullscreen":
+            flags = pygame.FULLSCREEN
+            if hasattr(pygame, "SCALED"):
+                flags |= pygame.SCALED
+            self.screen = pygame.display.set_mode((0, 0), flags)
+        else:
+            window_w = GRID_W * CELL + 340
+            window_h = GRID_H * CELL + 190
+            self.screen = pygame.display.set_mode((window_w, window_h), pygame.RESIZABLE)
+
+        self._reflow_layout(*self.screen.get_size())
         pygame.display.set_caption("Pizzatorio Factory")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("arial", 22)
@@ -96,6 +125,78 @@ class GameUI:
             "chip": (30, 38, 55),
             "chip_active": (59, 93, 156),
         }
+
+    def _select_display_mode(self) -> str:
+        is_android = (
+            os.environ.get("ANDROID_ARGUMENT") is not None
+            or os.environ.get("P4A_BOOTSTRAP") is not None
+            or "pydroid" in os.environ.get("PYTHONHOME", "").lower()
+            or "pydroid" in os.environ.get("TERMUX_VERSION", "").lower()
+        )
+        return "mobile_fullscreen" if is_android else "desktop_windowed"
+
+    def _reflow_layout(self, viewport_w: int | None = None, viewport_h: int | None = None) -> None:
+        if viewport_w is None or viewport_h is None:
+            viewport_w, viewport_h = self.screen.get_size()
+
+        landscape = viewport_w >= viewport_h
+        mobile = self.display_mode == "mobile_fullscreen"
+        safe_top = int(viewport_h * 0.02) if mobile else 0
+        safe_bottom = int(viewport_h * 0.03) if mobile else 0
+        hud_h = max(120, int(viewport_h * 0.12))
+        toolbar_h = max(58, int(viewport_h * 0.08))
+        panel_h = hud_h + toolbar_h
+        side_panel_w = max(300, int(viewport_w * 0.25)) if landscape else 0
+
+        play_w = max(320, viewport_w - side_panel_w)
+        play_h = max(220, viewport_h - safe_top - safe_bottom - panel_h)
+        cell_size = max(18, int(min(play_w / GRID_W, play_h / GRID_H)))
+
+        grid_px_w = int(cell_size * GRID_W)
+        grid_px_h = int(cell_size * GRID_H)
+        grid_x = max(0, (play_w - grid_px_w) // 2)
+        grid_y = safe_top + max(0, (play_h - grid_px_h) // 2)
+        panel_y = viewport_h - safe_bottom - panel_h
+
+        self.layout = RuntimeLayout(
+            viewport_w=viewport_w,
+            viewport_h=viewport_h,
+            safe_top=safe_top,
+            safe_bottom=safe_bottom,
+            hud_h=hud_h,
+            toolbar_h=toolbar_h,
+            panel_h=panel_h,
+            side_panel_w=side_panel_w,
+            play_w=play_w,
+            play_h=play_h,
+            cell_size=cell_size,
+            grid_px_w=grid_px_w,
+            grid_px_h=grid_px_h,
+            grid_x=grid_x,
+            grid_y=grid_y,
+            panel_y=panel_y,
+        )
+
+        self.landscape = landscape
+        self.sidebar_w = side_panel_w
+        self.window_w = viewport_w
+        self.window_h = viewport_h
+        self.grid_px_w = grid_px_w
+        self.grid_px_h = grid_px_h
+        self.panel_h = panel_h
+
+    def _screen_to_grid(self, mx: int, my: int) -> Tuple[int, int] | None:
+        assert self.layout is not None
+        if not (
+            self.layout.grid_x <= mx < self.layout.grid_x + self.layout.grid_px_w
+            and self.layout.grid_y <= my < self.layout.grid_y + self.layout.grid_px_h
+        ):
+            return None
+        gx = int((mx - self.layout.grid_x) // self.layout.cell_size)
+        gy = int((my - self.layout.grid_y) // self.layout.cell_size)
+        if 0 <= gx < GRID_W and 0 <= gy < GRID_H:
+            return gx, gy
+        return None
 
     def _set_section(self, section: str) -> None:
         if section not in self.main_sections:
@@ -176,7 +277,8 @@ class GameUI:
         return COMMERCIALS
 
     def _ui_rects(self) -> Dict[str, List[Tuple[pygame.Rect, str]]]:
-        top_y = self.grid_px_h + 8
+        assert self.layout is not None
+        top_y = self.layout.panel_y + 8
         x = 10
         sections: List[Tuple[pygame.Rect, str]] = []
         for section in self.main_sections:
@@ -195,7 +297,8 @@ class GameUI:
         return {"sections": sections, "subsections": subs}
 
     def _toolbar_rects(self) -> List[Tuple[pygame.Rect, str]]:
-        y = self.grid_px_h + 78
+        assert self.layout is not None
+        y = self.layout.panel_y + 78
         rects = []
         x = 10
         actions = self._active_toolbar_actions()
@@ -260,6 +363,11 @@ class GameUI:
         for ev in pygame.event.get():
             if ev.type == pygame.QUIT:
                 self.running = False
+            if ev.type == pygame.VIDEORESIZE and self.display_mode == "desktop_windowed":
+                self.screen = pygame.display.set_mode((ev.w, ev.h), pygame.RESIZABLE)
+                self._reflow_layout(ev.w, ev.h)
+            if hasattr(pygame, "WINDOWSIZECHANGED") and ev.type == pygame.WINDOWSIZECHANGED:
+                self._reflow_layout(*self.screen.get_size())
             if ev.type == pygame.KEYDOWN:
                 if ev.key == pygame.K_1:
                     self.selected = CONVEYOR
@@ -299,10 +407,12 @@ class GameUI:
                     self._handle_toolbar_action("L Load")
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
                 x, y = pygame.mouse.get_pos()
-                if y >= self.grid_px_h and self._handle_click(x, y):
+                assert self.layout is not None
+                if y >= self.layout.panel_y and self._handle_click(x, y):
                     continue
-                if x < self.grid_px_w and y < self.grid_px_h:
-                    gx, gy = x // CELL, y // CELL
+                pos = self._screen_to_grid(x, y)
+                if pos is not None:
+                    gx, gy = pos
                     self.sim.place_tile(gx, gy, self.selected, self.rotation)
 
     def _tile_base_color(self, kind: str) -> Tuple[int, int, int]:
@@ -372,14 +482,21 @@ class GameUI:
         self.screen.blit(self.small.render(label, True, self.palette["text"]), (rect.x + 8, rect.y + 6))
 
     def _draw_sidebar(self) -> None:
-        if self.sidebar_w <= 0:
+        assert self.layout is not None
+        if self.layout.side_panel_w <= 0:
             return
-        panel = pygame.Rect(self.grid_px_w, 0, self.sidebar_w, self.window_h)
+        panel = pygame.Rect(self.layout.play_w, 0, self.layout.side_panel_w, self.layout.viewport_h)
         pygame.draw.rect(self.screen, (16, 21, 33), panel)
-        pygame.draw.line(self.screen, self.palette["panel_border"], (self.grid_px_w, 0), (self.grid_px_w, self.window_h), 2)
+        pygame.draw.line(
+            self.screen,
+            self.palette["panel_border"],
+            (self.layout.play_w, 0),
+            (self.layout.play_w, self.layout.viewport_h),
+            2,
+        )
 
         y = 14
-        self.screen.blit(self.font.render("Landscape Ops", True, self.palette["text"]), (self.grid_px_w + 14, y))
+        self.screen.blit(self.font.render("Landscape Ops", True, self.palette["text"]), (self.layout.play_w + 14, y))
         y += 34
         rows = [
             f"Menu: {self.active_section}",
@@ -394,14 +511,14 @@ class GameUI:
             f"Deliveries active: {len(self.sim.deliveries)}",
         ]
         for row in rows:
-            self.screen.blit(self.small.render(row, True, self.palette["muted"]), (self.grid_px_w + 14, y))
+            self.screen.blit(self.small.render(row, True, self.palette["muted"]), (self.layout.play_w + 14, y))
             y += 25
 
         card_y = y + 8
-        card_w = self.sidebar_w - 28
-        self._draw_metric_card(self.grid_px_w + 14, card_y, card_w, "On-time Throughput", self.sim.ontime_rate, (106, 212, 148))
-        self._draw_metric_card(self.grid_px_w + 14, card_y + 64, card_w, "Bottleneck", self.sim.bottleneck, (242, 186, 88))
-        self._draw_metric_card(self.grid_px_w + 14, card_y + 128, card_w, "Hygiene", self.sim.hygiene, (101, 189, 255))
+        card_w = self.layout.side_panel_w - 28
+        self._draw_metric_card(self.layout.play_w + 14, card_y, card_w, "On-time Throughput", self.sim.ontime_rate, (106, 212, 148))
+        self._draw_metric_card(self.layout.play_w + 14, card_y + 64, card_w, "Bottleneck", self.sim.bottleneck, (242, 186, 88))
+        self._draw_metric_card(self.layout.play_w + 14, card_y + 128, card_w, "Hygiene", self.sim.hygiene, (101, 189, 255))
 
         if self.active_section == "Info":
             detail_y = card_y + 202
@@ -423,11 +540,18 @@ class GameUI:
                     f"Rep: {self.sim.reputation:0.1f}",
                 ]
             for line in details:
-                self.screen.blit(self.small.render(line, True, self.palette["muted"]), (self.grid_px_w + 14, detail_y))
+                self.screen.blit(self.small.render(line, True, self.palette["muted"]), (self.layout.play_w + 14, detail_y))
                 detail_y += 23
 
     def draw_tile(self, x: int, y: int, tile) -> None:
-        rect = pygame.Rect(x * CELL + 1, y * CELL + 1, CELL - 2, CELL - 2)
+        assert self.layout is not None
+        cell = self.layout.cell_size
+        rect = pygame.Rect(
+            self.layout.grid_x + x * cell + 1,
+            self.layout.grid_y + y * cell + 1,
+            cell - 2,
+            cell - 2,
+        )
         base = self._tile_base_color(tile.kind)
         lift = tuple(min(255, c + 25) for c in base)
         pygame.draw.rect(self.screen, base, rect, border_radius=10)
@@ -438,29 +562,45 @@ class GameUI:
             self._draw_tile_icon(tile, rect)
 
     def draw(self) -> None:
+        assert self.layout is not None
+        cell = self.layout.cell_size
         self.screen.fill(self.palette["bg"])
         for y in range(GRID_H):
             for x in range(GRID_W):
                 self.draw_tile(x, y, self.sim.grid[y][x])
 
         for x in range(GRID_W + 1):
-            pygame.draw.line(self.screen, self.palette["grid_line"], (x * CELL, 0), (x * CELL, self.grid_px_h), 1)
+            xpos = self.layout.grid_x + x * cell
+            pygame.draw.line(
+                self.screen,
+                self.palette["grid_line"],
+                (xpos, self.layout.grid_y),
+                (xpos, self.layout.grid_y + self.grid_px_h),
+                1,
+            )
         for y in range(GRID_H + 1):
-            pygame.draw.line(self.screen, self.palette["grid_line"], (0, y * CELL), (self.grid_px_w, y * CELL), 1)
+            ypos = self.layout.grid_y + y * cell
+            pygame.draw.line(
+                self.screen,
+                self.palette["grid_line"],
+                (self.layout.grid_x, ypos),
+                (self.layout.grid_x + self.grid_px_w, ypos),
+                1,
+            )
 
         for item in self.sim.items:
-            px = item.x * CELL + CELL // 2
-            py = item.y * CELL + CELL // 2
+            px = self.layout.grid_x + item.x * cell + cell // 2
+            py = self.layout.grid_y + item.y * cell + cell // 2
             colors = {
                 "raw": (219, 223, 235),
                 "processed": (255, 214, 126),
                 "baked": (255, 139, 94),
             }
             color = colors.get(item.stage, (255, 255, 255))
-            pygame.draw.circle(self.screen, (30, 34, 45), (int(px), int(py)), 10)
-            pygame.draw.circle(self.screen, color, (int(px), int(py)), 7)
+            pygame.draw.circle(self.screen, (30, 34, 45), (int(px), int(py)), max(5, cell // 4))
+            pygame.draw.circle(self.screen, color, (int(px), int(py)), max(3, cell // 6))
 
-        panel = pygame.Rect(0, self.grid_px_h, self.grid_px_w, self.panel_h)
+        panel = pygame.Rect(0, self.layout.panel_y, self.layout.play_w, self.panel_h)
         pygame.draw.rect(self.screen, self.palette["panel"], panel)
         pygame.draw.line(self.screen, self.palette["panel_border"], panel.topleft, panel.topright, 2)
 
@@ -486,7 +626,7 @@ class GameUI:
             f"| Orders={len(self.sim.orders)} Deliveries={len(self.sim.deliveries)} Cash=${self.sim.money} "
             f"Rev=${self.sim.total_revenue} Spend=${self.sim.total_spend}"
         )
-        self.screen.blit(self.small.render(dtext, True, (255, 236, 160)), (10, self.grid_px_h + 150))
+        self.screen.blit(self.small.render(dtext, True, (255, 236, 160)), (10, self.layout.panel_y + 150))
 
         self._draw_sidebar()
         pygame.display.flip()

@@ -54,6 +54,7 @@ from config import (
     REPUTATION_LOSS_LATE,
     REPUTATION_LOSS_MISSED_ORDER,
     REPUTATION_STARTING,
+    RESEARCH_FOCUS_GAIN_BONUS,
     SAVE_FILE,
     SECOND_LOCATION_REWARD_BONUS,
     SECOND_LOCATION_ORDER_CAPACITY_BONUS,
@@ -751,7 +752,10 @@ class FactorySim:
                 flow = PROCESS_FLOW.get(tile.kind)
                 if flow and item.stage == flow["from"]:
                     item.stage = flow["to"]
-                    self.research_points += flow["research_gain"]
+                    rp_gain = float(flow["research_gain"])
+                    if self.research_focus and not self.tech_tree.get(self.research_focus, False):
+                        rp_gain *= 1.0 + RESEARCH_FOCUS_GAIN_BONUS
+                    self.research_points += rp_gain
                     if "delivery_boost" in flow:
                         item.delivery_boost = flow["delivery_boost"]
                 if tile.kind == ASSEMBLY_TABLE and self.orders and not item.recipe_key:

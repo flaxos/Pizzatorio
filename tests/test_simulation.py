@@ -15,6 +15,7 @@ from config import (
     INGREDIENT_TYPES,
     ITEM_SPAWN_INTERVAL,
     ORDER_SPAWN_INTERVAL,
+    RESEARCH_FOCUS_GAIN_BONUS,
     OVEN,
     PROCESSOR,
     SINK,
@@ -299,6 +300,27 @@ class TestFactorySimTick(unittest.TestCase):
         sim.tech_tree["hygiene_training"] = True
         targets = sim.available_research_targets()
         self.assertIn("precision_cooking", targets)
+
+    def test_research_focus_increases_research_gain_from_processing(self):
+        sim = FactorySim(seed=11)
+        sim.items = [Item(x=7, y=7, stage="raw", progress=0.99, ingredient_type="flour")]
+        sim.set_research_focus("ovens")
+
+        sim.tick(0.05)
+
+        base_gain = 0.12
+        expected = base_gain * (1.0 + RESEARCH_FOCUS_GAIN_BONUS)
+        self.assertAlmostEqual(sim.research_points, expected, places=4)
+
+    def test_research_focus_bonus_ignores_already_unlocked_focus(self):
+        sim = FactorySim(seed=11)
+        sim.items = [Item(x=7, y=7, stage="raw", progress=0.99, ingredient_type="flour")]
+        sim.tech_tree["ovens"] = True
+        sim.research_focus = "ovens"
+
+        sim.tick(0.05)
+
+        self.assertAlmostEqual(sim.research_points, 0.12, places=4)
 
     def test_cycle_research_focus_skips_unlocked(self):
         sim = FactorySim(seed=1)

@@ -71,6 +71,7 @@ PRECISION_COOKING_WASTE_REFUND: float = 0.40  # fraction of sell_price refunded 
 HYGIENE_TRAINING_RECOVERY_BONUS: float = 0.30  # extra hygiene/s recovery when unlocked
 PRIORITY_DISPATCH_LATE_MULTIPLIER: float = 0.75  # late-delivery reward fraction (vs 0.5 default)
 DOUBLE_SPAWN_INTERVAL_DIVISOR: float = 1.75   # divides item spawn interval when unlocked
+RESEARCH_FOCUS_GAIN_BONUS: float = 0.35   # bonus RP gain multiplier while a valid research focus is active
 
 # ---------------------------------------------------------------------------
 # Simulation tuning

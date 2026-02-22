@@ -51,6 +51,8 @@ class RuntimeLayout:
     play_top: int
     play_bottom: int
     bottom_sheet_y: int
+    panel_y: int
+    panel_h: int
 
 
 UI_SETTINGS_FILE = Path("ui_settings.json")
@@ -256,6 +258,8 @@ class GameUI:
             play_top=play_top,
             play_bottom=play_bottom,
             bottom_sheet_y=viewport_h - safe_bottom - bottom_sheet_h,
+            panel_y=viewport_h - safe_bottom - bottom_sheet_h,
+            panel_h=bottom_sheet_h,
         )
 
         self.landscape = landscape
@@ -264,7 +268,7 @@ class GameUI:
         self.window_h = viewport_h
         self.grid_px_w = grid_px_w
         self.grid_px_h = grid_px_h
-        self.panel_h = panel_h
+        self.panel_h = bottom_sheet_h
         self._clamp_camera()
 
         chip_size = max(17, int(self.touch_target_min_h * 0.38))

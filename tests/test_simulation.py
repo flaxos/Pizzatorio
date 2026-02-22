@@ -694,6 +694,19 @@ class TestAssemblyTable(unittest.TestCase):
         self.assertIn("margherita", remaining)
         self.assertEqual(sim.waste, waste_before + 1)
 
+
+    def test_sink_untagged_item_fulfills_unique_matching_recipe(self):
+        sim = self._fresh()
+        sim.orders.clear()
+        sim.orders.append(Order(recipe_key="margherita", remaining_sla=60.0, total_sla=60.0, reward=12))
+        sim.orders.append(Order(recipe_key="pepperoni", remaining_sla=60.0, total_sla=60.0, reward=15))
+        sim.items.append(Item(x=17, y=7, progress=0.0, stage="baked", ingredient_type="pepperoni"))
+        for _ in range(15):
+            sim.tick(0.1)
+        remaining = [o.recipe_key for o in sim.orders]
+        self.assertIn("margherita", remaining)
+        self.assertNotIn("pepperoni", remaining)
+
     def test_sink_untagged_item_fulfills_when_all_orders_share_recipe(self):
         sim = self._fresh()
         sim.orders.clear()

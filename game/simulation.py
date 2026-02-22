@@ -669,6 +669,14 @@ class FactorySim:
                     return self.orders.pop(idx)
             return None
 
+        if item.ingredient_type:
+            matching_indices = [
+                idx for idx, order in enumerate(self.orders) if self._ingredient_matches_order(item.ingredient_type, order)
+            ]
+            matching_recipes = {self.orders[idx].recipe_key for idx in matching_indices}
+            if len(matching_recipes) == 1 and matching_indices:
+                return self.orders.pop(matching_indices[0])
+
         ordered_recipe_keys = {order.recipe_key for order in self.orders}
         if len(ordered_recipe_keys) == 1:
             return self.orders.pop(0)

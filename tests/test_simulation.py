@@ -973,6 +973,67 @@ class TestOrderChannels(unittest.TestCase):
         self.assertEqual(loaded.order_channel, "eat_in")
 
 
+class TestIngredientRecipeCoverage(unittest.TestCase):
+    """Every topping product referenced in recipes must be reachable by a spawnable ingredient."""
+
+    def _all_topping_products(self) -> set:
+        products: set = set()
+        for recipe in RECIPES.values():
+            for topping in recipe.get("toppings", []):
+                products.add(str(topping))
+        return products
+
+    def _coverable_products(self) -> set:
+        from config import INGREDIENT_TO_PRODUCTS, INGREDIENT_TYPES
+        covered: set = set()
+        for ingredient in INGREDIENT_TYPES:
+            covered.update(INGREDIENT_TO_PRODUCTS.get(ingredient, []))
+        return covered
+
+    def test_all_topping_products_coverable_by_spawnable_ingredient(self):
+        """Every recipe topping product must be producible by some spawnable ingredient."""
+        uncovered = self._all_topping_products() - self._coverable_products()
+        self.assertEqual(
+            uncovered,
+            set(),
+            f"Recipe toppings with no spawnable ingredient source: {uncovered}",
+        )
+
+    def test_ingredient_types_consistent_across_all_config_dicts(self):
+        from config import INGREDIENT_PURCHASE_COSTS, INGREDIENT_SPAWN_WEIGHTS, INGREDIENT_TO_PRODUCTS, INGREDIENT_TYPES
+        type_set = set(INGREDIENT_TYPES)
+        self.assertEqual(type_set, set(INGREDIENT_SPAWN_WEIGHTS.keys()))
+        self.assertEqual(type_set, set(INGREDIENT_PURCHASE_COSTS.keys()))
+        self.assertEqual(type_set, set(INGREDIENT_TO_PRODUCTS.keys()))
+
+    def test_new_ingredient_types_all_have_positive_weights_and_costs(self):
+        from config import INGREDIENT_PURCHASE_COSTS, INGREDIENT_SPAWN_WEIGHTS, INGREDIENT_TYPES
+        new_types = [
+            "jalapeno", "artichoke", "bacon", "sausage", "garlic",
+            "spinach", "corn", "anchovy", "beef", "rocket", "basil",
+        ]
+        for ingredient in new_types:
+            self.assertIn(ingredient, INGREDIENT_TYPES)
+            self.assertGreater(INGREDIENT_SPAWN_WEIGHTS[ingredient], 0)
+            self.assertGreater(INGREDIENT_PURCHASE_COSTS[ingredient], 0)
+
+    def test_new_ingredients_spawn_in_simulation(self):
+        """New ingredient types can be spawned by the simulation."""
+        new_types = {
+            "jalapeno", "artichoke", "bacon", "sausage", "garlic",
+            "spinach", "corn", "anchovy", "beef", "rocket", "basil",
+        }
+        seen: set = set()
+        for seed in range(1, 20):
+            sim = FactorySim(seed=seed)
+            sim.money = 10_000
+            for _ in range(30):
+                sim.tick(0.1)
+            for item in sim.items:
+                seen.add(item.ingredient_type)
+        self.assertTrue(seen & new_types, f"No new ingredient types spawned; seen: {seen}")
+
+
 if __name__ == "__main__":
     unittest.main()
 

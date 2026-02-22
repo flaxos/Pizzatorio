@@ -18,6 +18,7 @@ class OrderChannelDefinition:
     sla_multiplier: float = 1.0
     demand_weight: float = 1.0
     delivery_modes: tuple[str, ...] = ("drone", "scooter")
+    min_reputation: float = 0.0
 
     def to_runtime_dict(self) -> Dict[str, str | float | List[str]]:
         return {
@@ -26,6 +27,7 @@ class OrderChannelDefinition:
             "sla_multiplier": self.sla_multiplier,
             "demand_weight": self.demand_weight,
             "delivery_modes": list(self.delivery_modes),
+            "min_reputation": self.min_reputation,
         }
 
 
@@ -37,6 +39,7 @@ DEFAULT_ORDER_CHANNELS: Dict[str, OrderChannelDefinition] = {
         sla_multiplier=1.0,
         demand_weight=1.0,
         delivery_modes=("drone", "scooter"),
+        min_reputation=0.0,
     ),
     "takeaway": OrderChannelDefinition(
         key="takeaway",
@@ -45,6 +48,7 @@ DEFAULT_ORDER_CHANNELS: Dict[str, OrderChannelDefinition] = {
         sla_multiplier=1.35,
         demand_weight=0.75,
         delivery_modes=("scooter",),
+        min_reputation=10.0,
     ),
     "eat_in": OrderChannelDefinition(
         key="eat_in",
@@ -53,6 +57,7 @@ DEFAULT_ORDER_CHANNELS: Dict[str, OrderChannelDefinition] = {
         sla_multiplier=1.2,
         demand_weight=0.65,
         delivery_modes=("scooter",),
+        min_reputation=25.0,
     ),
 }
 
@@ -80,6 +85,7 @@ def _parse_channel_entry(key: str, entry: Dict[str, Any]) -> OrderChannelDefinit
     sla_multiplier = entry.get("sla_multiplier", 1.0)
     demand_weight = entry.get("demand_weight", 1.0)
     delivery_modes = entry.get("delivery_modes", ["drone", "scooter"])
+    min_reputation = entry.get("min_reputation", 0.0)
 
     if not isinstance(display_name, str) or not display_name.strip():
         return None
@@ -88,6 +94,10 @@ def _parse_channel_entry(key: str, entry: Dict[str, Any]) -> OrderChannelDefinit
     if not _is_positive_number(sla_multiplier):
         return None
     if not _is_positive_number(demand_weight):
+        return None
+    if isinstance(min_reputation, bool) or not isinstance(min_reputation, (int, float)) or not math.isfinite(min_reputation):
+        return None
+    if float(min_reputation) < 0.0:
         return None
 
     parsed_modes = _coerce_delivery_modes(delivery_modes)
@@ -101,6 +111,7 @@ def _parse_channel_entry(key: str, entry: Dict[str, Any]) -> OrderChannelDefinit
         sla_multiplier=float(sla_multiplier),
         demand_weight=float(demand_weight),
         delivery_modes=parsed_modes,
+        min_reputation=float(min_reputation),
     )
 
 

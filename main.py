@@ -125,7 +125,7 @@ class GameUI:
 
     def _toolbar_rects(self) -> List[Tuple[pygame.Rect, str]]:
         y = self.grid_px_h + 78
-        labels = ["1 Conveyor", "2 Processor", "3 Oven", "4 Bot Dock", "6 Assembly", "5 Delete", "R Rotate", "Q/E Rot ±"]
+        labels = ["1 Conveyor", "2 Processor", "3 Oven", "4 Bot Dock", "6 Assembly", "5 Delete", "R Rotate", "Q/E Rot ±", "C Cycle R&D", "U Unlock"]
         rects = []
         x = 10
         for label in labels:
@@ -181,6 +181,10 @@ class GameUI:
                     self._set_section("Info")
                 elif ev.key == pygame.K_s:
                     self.sim.save()
+                elif ev.key == pygame.K_c:
+                    self.sim.cycle_research_focus()
+                elif ev.key == pygame.K_u:
+                    self.sim.try_unlock_research_focus()
                 elif ev.key == pygame.K_l and SAVE_FILE.exists():
                     self.sim = FactorySim.load()
                     self.order_channel = self.sim.order_channel
@@ -275,6 +279,7 @@ class GameUI:
             f"Order channel: {self.order_channel}",
             f"Commercial: {self.commercial_strategy}",
             f"R&D focus: {self.sim.research_focus or 'auto'}",
+            f"R&D available: {len(self.sim.available_research_targets())}",
             f"Selected tool: {self.selected}",
             f"Rotation: {self.rotation}",
             f"Orders pending: {len(self.sim.orders)}",

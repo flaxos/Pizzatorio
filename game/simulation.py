@@ -246,19 +246,28 @@ class FactorySim:
             return True
         if tech not in TECH_UNLOCK_COSTS or self.tech_tree.get(tech, False):
             return False
+        if not self._research_prerequisites_met(tech):
+            return False
         self.research_focus = tech
         return True
 
+    def available_research_targets(self) -> List[str]:
+        return [
+            tech
+            for tech in TECH_UNLOCK_COSTS
+            if not self.tech_tree.get(tech, False) and self._research_prerequisites_met(tech)
+        ]
+
     def cycle_research_focus(self) -> str:
-        locked = [tech for tech in TECH_UNLOCK_COSTS if not self.tech_tree.get(tech, False)]
-        if not locked:
+        available = self.available_research_targets()
+        if not available:
             self.research_focus = ""
             return ""
-        if self.research_focus not in locked:
-            self.research_focus = locked[0]
+        if self.research_focus not in available:
+            self.research_focus = available[0]
             return self.research_focus
-        idx = locked.index(self.research_focus)
-        self.research_focus = locked[(idx + 1) % len(locked)]
+        idx = available.index(self.research_focus)
+        self.research_focus = available[(idx + 1) % len(available)]
         return self.research_focus
 
     def _research_prerequisites_met(self, tech: str) -> bool:

@@ -184,6 +184,20 @@ class TestFactorySimTick(unittest.TestCase):
         sim.tick(0.01)
         self.assertTrue(sim.tech_tree["priority_dispatch"])
 
+    def test_set_research_focus_rejects_unmet_prerequisites(self):
+        sim = FactorySim(seed=1)
+        self.assertFalse(sim.set_research_focus("precision_cooking"))
+        self.assertEqual(sim.research_focus, "")
+
+    def test_available_research_targets_only_return_unlocked_prerequisite_safe(self):
+        sim = FactorySim(seed=1)
+        targets = sim.available_research_targets()
+        self.assertIn("ovens", targets)
+        self.assertNotIn("precision_cooking", targets)
+        sim.tech_tree["turbo_oven"] = True
+        targets = sim.available_research_targets()
+        self.assertIn("precision_cooking", targets)
+
     def test_cycle_research_focus_skips_unlocked(self):
         sim = FactorySim(seed=1)
         sim.tech_tree["ovens"] = True

@@ -54,15 +54,15 @@ class GameUI:
         self.rotation = 0
 
         self.main_sections = ["Build", "Orders", "R&D", "Commercials", "Info"]
-        self.subsections = {
+        self.section_defaults = {
             "Build": ["Belts", "Machines", "Utilities"],
             "Orders": ["Delivery", "Takeaway", "Eat-in"],
-            "R&D": ["Tech tree", "Queued", "Upgrades"],
+            "R&D": ["Cycle", "Unlock", "Clear"],
             "Commercials": ["Campaigns", "Promos", "Franchise"],
             "Info": ["KPIs", "Logs", "Economy"],
         }
         self.active_section = "Build"
-        self.active_subsection = self.subsections[self.active_section][0]
+        self.active_subsection = self._subsections_for(self.active_section)[0]
         self.order_channel = self.sim.order_channel
         self.commercial_strategy = self.sim.commercial_strategy
         self.toolbar_actions = [
@@ -96,14 +96,28 @@ class GameUI:
         if section not in self.main_sections:
             return
         self.active_section = section
-        self.active_subsection = self.subsections[section][0]
+        self.active_subsection = self._subsections_for(section)[0]
 
     def _cycle_section(self) -> None:
         idx = self.main_sections.index(self.active_section)
         self._set_section(self.main_sections[(idx + 1) % len(self.main_sections)])
 
+    def _rd_visible_targets(self) -> List[str]:
+        targets = self.sim.available_research_targets()
+        if self.sim.research_focus and self.sim.research_focus not in targets:
+            targets.insert(0, self.sim.research_focus)
+        return targets[:3]
+
+    def _subsections_for(self, section: str) -> List[str]:
+        if section != "R&D":
+            return list(self.section_defaults.get(section, []))
+        labels = list(self.section_defaults["R&D"])
+        for tech in self._rd_visible_targets():
+            labels.append(f"Focus: {tech}")
+        return labels
+
     def _set_subsection(self, subsection: str) -> None:
-        if subsection in self.subsections.get(self.active_section, []):
+        if subsection in self._subsections_for(self.active_section):
             self.active_subsection = subsection
             if self.active_section == "Orders":
                 self.order_channel = subsection.lower().replace("-", "_")
@@ -113,10 +127,16 @@ class GameUI:
                 if self.sim.set_commercial_strategy(strategy):
                     self.commercial_strategy = self.sim.commercial_strategy
             elif self.active_section == "R&D":
-                if subsection == "Queued":
+                if subsection == "Cycle":
                     self.sim.cycle_research_focus()
-                elif subsection == "Upgrades":
+                elif subsection == "Unlock":
                     self.sim.try_unlock_research_focus()
+                elif subsection == "Clear":
+                    self.sim.set_research_focus("")
+                elif subsection.startswith("Focus: "):
+                    self.sim.set_research_focus(subsection.split(": ", 1)[1])
+                if self.sim.research_focus:
+                    self.active_subsection = f"Focus: {self.sim.research_focus}"
 
     def _ui_rects(self) -> Dict[str, List[Tuple[pygame.Rect, str]]]:
         top_y = self.grid_px_h + 8
@@ -130,7 +150,7 @@ class GameUI:
         sub_y = top_y + 38
         x = 10
         subs: List[Tuple[pygame.Rect, str]] = []
-        for subsection in self.subsections[self.active_section]:
+        for subsection in self._subsections_for(self.active_section):
             rect = pygame.Rect(x, sub_y, 146, 28)
             subs.append((rect, subsection))
             x += 152

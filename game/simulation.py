@@ -566,10 +566,25 @@ class FactorySim:
         if self.tech_tree.get("second_location", False):
             max_active_orders += max(0, SECOND_LOCATION_ORDER_CAPACITY_BONUS)
         if len(self.orders) >= max_active_orders:
+            overflow_order = self._roll_order_for_channel(self.order_channel, available=available)
+            if overflow_order:
+                self._mark_order_missed(overflow_order, reason="capacity")
             return
+        order = self._roll_order_for_channel(self.order_channel, available=available)
+        if order is None:
+            return
+        self.orders.append(order)
+
+    def _roll_order_for_channel(self, channel_key: str, *, available: List[str] | None = None) -> Order | None:
+        if available is None:
+            available = self._available_recipes(channel_key=channel_key)
+        if not available:
+            return None
+
         commercial_cfg = COMMERCIALS.get(self.commercial_strategy, {})
         demand_multiplier = max(0.1, float(commercial_cfg.get("demand_multiplier", 1.0)))
         reward_bonus = max(0.1, float(commercial_cfg.get("reward_multiplier", 1.0)))
+        channel_cfg = ORDER_CHANNELS.get(channel_key, {})
         channel_demand_weight = max(0.01, float(channel_cfg.get("demand_weight", 1.0)))
         weights = [
             max(0.01, float(RECIPES[key].get("demand_weight", 1.0)) * channel_demand_weight * demand_multiplier)
@@ -581,15 +596,28 @@ class FactorySim:
         reward_multiplier = max(0.1, float(channel_cfg.get("reward_multiplier", 1.0)))
         order_sla = float(recipe["sla"]) * sla_multiplier
         order_reward = max(1, int(round(float(recipe["sell_price"]) * reward_multiplier * reward_bonus)))
-        self.orders.append(
-            Order(
-                recipe_key=key,
-                remaining_sla=order_sla,
-                total_sla=order_sla,
-                reward=order_reward,
-                channel_key=self.order_channel,
-            )
+        return Order(
+            recipe_key=key,
+            remaining_sla=order_sla,
+            total_sla=order_sla,
+            reward=order_reward,
+            channel_key=channel_key,
         )
+
+    def _mark_order_missed(self, order: Order, *, reason: str = "expired") -> None:
+        self.reputation = clamp(self.reputation - REPUTATION_LOSS_MISSED_ORDER, 0.0, 100.0)
+        channel_cfg = ORDER_CHANNELS.get(order.channel_key, ORDER_CHANNELS.get(self.order_channel, {}))
+        missed_penalty_multiplier = max(0.1, float(channel_cfg.get("missed_order_penalty_multiplier", 1.0)))
+        penalty = int(round(max(0.0, float(order.reward)) * MISSED_ORDER_CASH_PENALTY_MULTIPLIER * missed_penalty_multiplier))
+        charged = min(self.money, penalty)
+        self.money -= charged
+        self.total_spend += charged
+        if reason == "capacity":
+            self._log_event(f"Order overflow: {order.recipe_key} (-${charged})")
+        else:
+            self._log_event(f"Order expired: {order.recipe_key} (-${charged})")
+        stats = self.channel_stats.setdefault(order.channel_key, {"completed": 0, "ontime": 0, "late": 0, "missed": 0, "revenue": 0})
+        stats["missed"] += 1
 
     def _ensure_active_order_channel_is_unlocked(self) -> None:
         if self.order_channel_is_unlocked(self.order_channel):
@@ -840,17 +868,7 @@ class FactorySim:
             if order.remaining_sla > 0:
                 next_orders.append(order)
                 continue
-
-            self.reputation = clamp(self.reputation - REPUTATION_LOSS_MISSED_ORDER, 0.0, 100.0)
-            channel_cfg = ORDER_CHANNELS.get(order.channel_key, ORDER_CHANNELS.get(self.order_channel, {}))
-            missed_penalty_multiplier = max(0.1, float(channel_cfg.get("missed_order_penalty_multiplier", 1.0)))
-            penalty = int(round(max(0.0, float(order.reward)) * MISSED_ORDER_CASH_PENALTY_MULTIPLIER * missed_penalty_multiplier))
-            charged = min(self.money, penalty)
-            self.money -= charged
-            self.total_spend += charged
-            self._log_event(f"Order expired: {order.recipe_key} (-${charged})")
-            stats = self.channel_stats.setdefault(order.channel_key, {"completed": 0, "ontime": 0, "late": 0, "missed": 0, "revenue": 0})
-            stats["missed"] += 1
+            self._mark_order_missed(order)
         self.orders = next_orders
 
         # Delivery completion

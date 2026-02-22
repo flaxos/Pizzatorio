@@ -212,6 +212,30 @@ class TestFactorySimTick(unittest.TestCase):
         sim.tick(0.01)
         self.assertEqual(sim.order_channel, "eat_in")
 
+    def test_takeaway_spawns_orders_faster_than_delivery(self):
+        delivery = FactorySim(seed=7)
+        takeaway = FactorySim(seed=7)
+        takeaway.reputation = 20.0
+        self.assertTrue(takeaway.set_order_channel("takeaway"))
+
+        for _ in range(100):
+            delivery.tick(0.1)
+            takeaway.tick(0.1)
+
+        self.assertGreaterEqual(len(takeaway.orders), len(delivery.orders))
+
+    def test_eat_in_spawns_orders_slower_than_delivery(self):
+        delivery = FactorySim(seed=7)
+        eat_in = FactorySim(seed=7)
+        eat_in.reputation = 30.0
+        self.assertTrue(eat_in.set_order_channel("eat_in"))
+
+        for _ in range(100):
+            delivery.tick(0.1)
+            eat_in.tick(0.1)
+
+        self.assertLessEqual(len(eat_in.orders), len(delivery.orders))
+
     def test_research_unlocks_progression(self):
         sim = FactorySim(seed=1)
         sim.research_points = 12.0

@@ -24,6 +24,7 @@ class OrderChannelDefinition:
     max_active_orders: int = 6
     late_reward_multiplier: float = 1.0
     missed_order_penalty_multiplier: float = 1.0
+    spawn_interval_multiplier: float = 1.0
 
     def to_runtime_dict(self) -> Dict[str, str | float | List[str]]:
         return {
@@ -38,6 +39,7 @@ class OrderChannelDefinition:
             "max_active_orders": self.max_active_orders,
             "late_reward_multiplier": self.late_reward_multiplier,
             "missed_order_penalty_multiplier": self.missed_order_penalty_multiplier,
+            "spawn_interval_multiplier": self.spawn_interval_multiplier,
         }
 
 
@@ -55,6 +57,7 @@ DEFAULT_ORDER_CHANNELS: Dict[str, OrderChannelDefinition] = {
         max_active_orders=8,
         late_reward_multiplier=1.0,
         missed_order_penalty_multiplier=1.0,
+        spawn_interval_multiplier=1.0,
     ),
     "takeaway": OrderChannelDefinition(
         key="takeaway",
@@ -69,6 +72,7 @@ DEFAULT_ORDER_CHANNELS: Dict[str, OrderChannelDefinition] = {
         max_active_orders=6,
         late_reward_multiplier=0.9,
         missed_order_penalty_multiplier=0.8,
+        spawn_interval_multiplier=0.95,
     ),
     "eat_in": OrderChannelDefinition(
         key="eat_in",
@@ -83,6 +87,7 @@ DEFAULT_ORDER_CHANNELS: Dict[str, OrderChannelDefinition] = {
         max_active_orders=4,
         late_reward_multiplier=0.7,
         missed_order_penalty_multiplier=1.25,
+        spawn_interval_multiplier=1.15,
     ),
 }
 
@@ -116,6 +121,7 @@ def _parse_channel_entry(key: str, entry: Dict[str, Any]) -> OrderChannelDefinit
     max_active_orders = entry.get("max_active_orders", 6)
     late_reward_multiplier = entry.get("late_reward_multiplier", 1.0)
     missed_order_penalty_multiplier = entry.get("missed_order_penalty_multiplier", 1.0)
+    spawn_interval_multiplier = entry.get("spawn_interval_multiplier", 1.0)
 
     if not isinstance(display_name, str) or not display_name.strip():
         return None
@@ -143,6 +149,8 @@ def _parse_channel_entry(key: str, entry: Dict[str, Any]) -> OrderChannelDefinit
         return None
     if not _is_positive_number(missed_order_penalty_multiplier):
         return None
+    if not _is_positive_number(spawn_interval_multiplier):
+        return None
 
     parsed_modes = _coerce_delivery_modes(delivery_modes)
     if parsed_modes is None:
@@ -161,6 +169,7 @@ def _parse_channel_entry(key: str, entry: Dict[str, Any]) -> OrderChannelDefinit
         max_active_orders=max_active_orders,
         late_reward_multiplier=float(late_reward_multiplier),
         missed_order_penalty_multiplier=float(missed_order_penalty_multiplier),
+        spawn_interval_multiplier=float(spawn_interval_multiplier),
     )
 
 

@@ -13,7 +13,8 @@
     "max_recipe_difficulty": 5,
     "max_active_orders": 8,
     "late_reward_multiplier": 1.0,
-    "missed_order_penalty_multiplier": 1.0
+    "missed_order_penalty_multiplier": 1.0,
+    "spawn_interval_multiplier": 1.0
   },
   "takeaway": {
     "display_name": "Takeaway",
@@ -28,7 +29,8 @@
     "max_recipe_difficulty": 3,
     "max_active_orders": 6,
     "late_reward_multiplier": 0.9,
-    "missed_order_penalty_multiplier": 0.8
+    "missed_order_penalty_multiplier": 0.8,
+    "spawn_interval_multiplier": 0.95
   },
   "eat_in": {
     "display_name": "Eat-in",
@@ -43,6 +45,7 @@
     "max_recipe_difficulty": 5,
     "max_active_orders": 4,
     "late_reward_multiplier": 0.7,
-    "missed_order_penalty_multiplier": 1.25
+    "missed_order_penalty_multiplier": 1.25,
+    "spawn_interval_multiplier": 1.15
   }
 }

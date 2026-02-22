@@ -269,8 +269,20 @@ class FactorySim:
         self.order_channel = channel
         return True
 
+    def commercial_strategy_is_unlocked(self, strategy: str) -> bool:
+        if strategy not in COMMERCIALS:
+            return False
+        required = str(COMMERCIALS[strategy].get("required_research", "")).strip()
+        if not required:
+            return True
+        return self.tech_tree.get(required, False)
+
     def set_commercial_strategy(self, strategy: str, *, charge: bool = True) -> bool:
         if strategy not in COMMERCIALS:
+            return False
+        if not self.commercial_strategy_is_unlocked(strategy):
+            required = str(COMMERCIALS[strategy].get("required_research", "")).strip()
+            self._log_event(f"Commercial {strategy} locked (need research: {required})")
             return False
         if strategy == self.commercial_strategy:
             return True
@@ -514,6 +526,17 @@ class FactorySim:
         self.order_channel = fallback_channels[0]
         self._log_event(f"Order channel auto-switched to {self.order_channel} (was {previous})")
 
+    def _ensure_active_commercial_strategy_is_unlocked(self) -> None:
+        if self.commercial_strategy_is_unlocked(self.commercial_strategy):
+            return
+        for strategy, cfg in COMMERCIALS.items():
+            required = str(cfg.get("required_research", "")).strip()
+            if not required:
+                previous = self.commercial_strategy
+                self.commercial_strategy = strategy
+                self._log_event(f"Commercial auto-switched to {strategy} (was {previous})")
+                return
+
     def _spawn_item(self) -> None:
         """Spawn a new ingredient item at the source tile with a weighted random type."""
         all_types = list(INGREDIENT_SPAWN_WEIGHTS.keys())
@@ -580,6 +603,7 @@ class FactorySim:
             if self.tech_tree.get("double_spawn", False)
             else ITEM_SPAWN_INTERVAL
         )
+        self._ensure_active_commercial_strategy_is_unlocked()
         commercial_cfg = COMMERCIALS.get(self.commercial_strategy, {})
         demand_multiplier = max(0.1, float(commercial_cfg.get("demand_multiplier", 1.0)))
         effective_order_spawn_interval = ORDER_SPAWN_INTERVAL / demand_multiplier

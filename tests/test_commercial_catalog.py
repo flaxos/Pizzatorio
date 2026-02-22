@@ -18,6 +18,25 @@ def test_invalid_entries_fall_back_to_defaults(tmp_path):
     assert set(catalog) == set(DEFAULT_COMMERCIALS)
 
 
+def test_required_research_must_be_string(tmp_path):
+    path = tmp_path / "commercials.json"
+    path.write_text(
+        json.dumps(
+            {
+                "campaigns": {
+                    "display_name": "Campaigns",
+                    "activation_cost": 120,
+                    "demand_multiplier": 1.2,
+                    "reward_multiplier": 1.0,
+                    "required_research": ["bad"],
+                }
+            }
+        )
+    )
+    catalog = load_commercial_catalog(path)
+    assert set(catalog) == set(DEFAULT_COMMERCIALS)
+
+
 def test_switching_commercial_strategy_charges_activation_cost_once():
     sim = FactorySim(seed=5)
     baseline = sim.money
@@ -42,3 +61,18 @@ def simulation_commercials():
     from game.simulation import COMMERCIALS
 
     return COMMERCIALS
+
+
+def test_franchise_requires_research_unlock():
+    sim = FactorySim(seed=5)
+    assert not sim.tech_tree.get("franchise_system", False)
+    assert not sim.set_commercial_strategy("franchise")
+    assert sim.commercial_strategy != "franchise"
+
+
+def test_franchise_unlock_allows_switching_strategy():
+    sim = FactorySim(seed=5)
+    sim.tech_tree["franchise_system"] = True
+
+    assert sim.set_commercial_strategy("franchise")
+    assert sim.commercial_strategy == "franchise"

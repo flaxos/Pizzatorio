@@ -15,6 +15,7 @@
     "display_name": "Franchise",
     "activation_cost": 180,
     "demand_multiplier": 1.15,
-    "reward_multiplier": 1.08
+    "reward_multiplier": 1.08,
+    "required_research": "franchise_system"
   }
 }

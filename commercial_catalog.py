@@ -16,6 +16,7 @@ class CommercialDefinition:
     activation_cost: int = 0
     demand_multiplier: float = 1.0
     reward_multiplier: float = 1.0
+    required_research: str = ""
 
     def to_runtime_dict(self) -> Dict[str, str | int | float]:
         return {
@@ -23,6 +24,7 @@ class CommercialDefinition:
             "activation_cost": self.activation_cost,
             "demand_multiplier": self.demand_multiplier,
             "reward_multiplier": self.reward_multiplier,
+            "required_research": self.required_research,
         }
 
 
@@ -47,6 +49,7 @@ DEFAULT_COMMERCIALS: Dict[str, CommercialDefinition] = {
         activation_cost=180,
         demand_multiplier=1.15,
         reward_multiplier=1.08,
+        required_research="franchise_system",
     ),
 }
 
@@ -65,6 +68,7 @@ def _parse_commercial_entry(key: str, entry: Dict[str, Any]) -> CommercialDefini
     activation_cost = entry.get("activation_cost", 0)
     demand_multiplier = entry.get("demand_multiplier", 1.0)
     reward_multiplier = entry.get("reward_multiplier", 1.0)
+    required_research = entry.get("required_research", "")
 
     if not isinstance(display_name, str) or not display_name.strip():
         return None
@@ -74,6 +78,8 @@ def _parse_commercial_entry(key: str, entry: Dict[str, Any]) -> CommercialDefini
         return None
     if not _is_positive_number(reward_multiplier):
         return None
+    if not isinstance(required_research, str):
+        return None
 
     return CommercialDefinition(
         key=key,
@@ -81,6 +87,7 @@ def _parse_commercial_entry(key: str, entry: Dict[str, Any]) -> CommercialDefini
         activation_cost=activation_cost,
         demand_multiplier=float(demand_multiplier),
         reward_multiplier=float(reward_multiplier),
+        required_research=required_research.strip(),
     )
 
 

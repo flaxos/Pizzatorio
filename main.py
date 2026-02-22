@@ -124,6 +124,16 @@ class GameUI:
                     min_rep = int(self.sim.order_channel_min_reputation(key))
                     labels.append(f"{channel} (Rep {min_rep})")
             return labels
+        if section == "Commercials":
+            labels: List[str] = []
+            for strategy in self.section_defaults.get("Commercials", []):
+                key = strategy.lower()
+                if self.sim.commercial_strategy_is_unlocked(key):
+                    labels.append(strategy)
+                else:
+                    required = str(self.simulation_commercials().get(key, {}).get("required_research", "")).strip()
+                    labels.append(f"{strategy} ({required})" if required else strategy)
+            return labels
         if section != "R&D":
             return list(self.section_defaults.get(section, []))
         labels = list(self.section_defaults["R&D"])
@@ -143,9 +153,11 @@ class GameUI:
                     selected_label = self.order_channel.replace("_", "-").title()
                     self.active_subsection = selected_label
             elif self.active_section == "Commercials":
-                strategy = subsection.lower()
+                strategy = subsection.split(" (", 1)[0].lower()
                 if self.sim.set_commercial_strategy(strategy):
                     self.commercial_strategy = self.sim.commercial_strategy
+                else:
+                    self.active_subsection = self.commercial_strategy.title()
             elif self.active_section == "R&D":
                 if subsection == "Cycle":
                     self.sim.cycle_research_focus()
@@ -157,6 +169,11 @@ class GameUI:
                     self.sim.set_research_focus(subsection.split(": ", 1)[1])
                 if self.sim.research_focus:
                     self.active_subsection = f"Focus: {self.sim.research_focus}"
+
+    def simulation_commercials(self) -> Dict[str, Dict[str, str | int | float]]:
+        from game.simulation import COMMERCIALS
+
+        return COMMERCIALS
 
     def _ui_rects(self) -> Dict[str, List[Tuple[pygame.Rect, str]]]:
         top_y = self.grid_px_h + 8

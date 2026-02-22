@@ -640,6 +640,32 @@ class TestOrderChannels(unittest.TestCase):
         sim._enqueue_delivery(order)
         self.assertEqual(sim.deliveries[-1].mode, "scooter")
 
+    def test_eat_in_order_fulfills_without_delivery_trip(self):
+        sim = FactorySim(seed=4)
+        starting_money = sim.money
+        sim._enqueue_delivery(
+            Order(recipe_key="margherita", remaining_sla=20.0, total_sla=20.0, reward=12, channel_key="eat_in")
+        )
+
+        self.assertEqual(len(sim.deliveries), 0)
+        self.assertEqual(sim.completed, 1)
+        self.assertEqual(sim.ontime, 1)
+        self.assertEqual(sim.money, starting_money + 12)
+
+    def test_eat_in_sink_completion_does_not_create_delivery(self):
+        sim = FactorySim(seed=4)
+        sim.orders.clear()
+        sim.orders.append(
+            Order(recipe_key="margherita", remaining_sla=30.0, total_sla=30.0, reward=11, channel_key="eat_in")
+        )
+        sim.items.append(Item(x=17, y=7, progress=0.0, stage="baked", ingredient_type="flour", recipe_key="margherita"))
+
+        for _ in range(15):
+            sim.tick(0.1)
+
+        self.assertEqual(len(sim.deliveries), 0)
+        self.assertGreaterEqual(sim.completed, 1)
+
     def test_order_channel_round_trip(self):
         sim = FactorySim(seed=4)
         sim.set_order_channel("eat_in")

@@ -33,6 +33,7 @@ from config import (
     HYGIENE_TRAINING_RECOVERY_BONUS,
     INGREDIENT_PURCHASE_COSTS,
     INGREDIENT_SPAWN_WEIGHTS,
+    INGREDIENT_TO_PRODUCTS,
     INGREDIENT_TYPES,
     ITEM_SPAWN_INTERVAL,
     ITEM_STAGE_ORDER,
@@ -465,6 +466,26 @@ class FactorySim:
                 self.tech_tree[tech] = True
                 self._log_event(f"Research auto-unlocked: {tech}")
 
+    @staticmethod
+    def _recipe_required_products(recipe: Dict) -> set[str]:
+        """Return the set of processed product IDs a recipe needs."""
+        products = {str(recipe.get("base", "")), str(recipe.get("sauce", "")), str(recipe.get("cheese", ""))}
+        for topping in recipe.get("toppings", []):
+            products.add(str(topping))
+        products.discard("")
+        return products
+
+    def _ingredient_matches_order(self, ingredient_type: str, order: Order) -> bool:
+        """Return True if *ingredient_type* can produce a product the order's recipe requires."""
+        products = INGREDIENT_TO_PRODUCTS.get(ingredient_type, [])
+        if not products:
+            return False
+        recipe = RECIPES.get(order.recipe_key)
+        if not recipe:
+            return False
+        needed = self._recipe_required_products(recipe)
+        return any(p in needed for p in products)
+
     def _next_pos(self, x: int, y: int, rot: int) -> Tuple[int, int]:
         dx, dy = DIRS[rot % 4]
         return x + dx, y + dy
@@ -676,7 +697,10 @@ class FactorySim:
                     if "delivery_boost" in flow:
                         item.delivery_boost = flow["delivery_boost"]
                 if tile.kind == ASSEMBLY_TABLE and self.orders and not item.recipe_key:
-                    item.recipe_key = self.orders[0].recipe_key
+                    for order in self.orders:
+                        if self._ingredient_matches_order(item.ingredient_type, order):
+                            item.recipe_key = order.recipe_key
+                            break
                 nx, ny = self._next_pos(item.x, item.y, tile.rot)
             elif tile.kind == EMPTY:
                 blocked += 1

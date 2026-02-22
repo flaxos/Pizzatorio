@@ -151,6 +151,23 @@ INGREDIENT_SPAWN_WEIGHTS: dict[str, float] = {
     "pineapple": 0.5,
 }
 
+# Mapping from raw ingredient type → processed product IDs it can produce.
+# Used by the assembly table to validate that an arriving ingredient is
+# relevant to the order's recipe before tagging it.
+INGREDIENT_TO_PRODUCTS: dict[str, list[str]] = {
+    "flour": ["rolled_pizza_base"],
+    "tomato": ["tomato_sauce"],
+    "cheese": ["shredded_cheese", "sliced_mozzarella"],
+    "pepperoni": ["sliced_pepperoni"],
+    "ham": ["chopped_ham"],
+    "chicken": ["diced_chicken"],
+    "mushroom": ["sliced_mushroom"],
+    "pepper": ["sliced_pepper"],
+    "onion": ["diced_onion"],
+    "olive": ["sliced_olives"],
+    "pineapple": ["pineapple_chunks"],
+}
+
 # Per-item purchase cost when sourcing raw ingredients from SOURCE.
 INGREDIENT_PURCHASE_COSTS: dict[str, int] = {
     "flour": 2,

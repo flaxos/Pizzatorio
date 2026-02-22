@@ -74,9 +74,25 @@ class GameUI:
 
         if self.display_mode == "mobile_fullscreen":
             flags = pygame.FULLSCREEN
+            self.screen = None
             if hasattr(pygame, "SCALED"):
-                flags |= pygame.SCALED
-            self.screen = pygame.display.set_mode((0, 0), flags)
+                try:
+                    # Android SDL builds can reject SCALED when paired with (0, 0) fullscreen.
+                    self.screen = pygame.display.set_mode((0, 0), flags | pygame.SCALED)
+                except pygame.error:
+                    self.screen = None
+            if self.screen is None:
+                try:
+                    self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                except pygame.error:
+                    display = pygame.display.Info()
+                    try:
+                        self.screen = pygame.display.set_mode(
+                            (display.current_w, display.current_h), pygame.FULLSCREEN
+                        )
+                    except pygame.error:
+                        safe_size = (display.current_w or 1280, display.current_h or 720)
+                        self.screen = pygame.display.set_mode(safe_size)
         else:
             window_w = GRID_W * CELL + 340
             window_h = GRID_H * CELL + 190

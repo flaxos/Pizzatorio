@@ -476,6 +476,9 @@ class FactorySim:
         if not available:
             return
         channel_cfg = ORDER_CHANNELS.get(self.order_channel, {})
+        max_active_orders = max(1, int(channel_cfg.get("max_active_orders", 6)))
+        if len(self.orders) >= max_active_orders:
+            return
         commercial_cfg = COMMERCIALS.get(self.commercial_strategy, {})
         demand_multiplier = max(0.1, float(commercial_cfg.get("demand_multiplier", 1.0)))
         reward_bonus = max(0.1, float(commercial_cfg.get("reward_multiplier", 1.0)))

@@ -4,29 +4,39 @@
     "reward_multiplier": 1.0,
     "sla_multiplier": 1.0,
     "demand_weight": 1.0,
-    "delivery_modes": ["drone", "scooter"],
+    "delivery_modes": [
+      "drone",
+      "scooter"
+    ],
     "min_reputation": 0.0,
     "min_recipe_difficulty": 1,
-    "max_recipe_difficulty": 5
+    "max_recipe_difficulty": 5,
+    "max_active_orders": 8
   },
   "takeaway": {
     "display_name": "Takeaway",
     "reward_multiplier": 0.85,
     "sla_multiplier": 1.35,
     "demand_weight": 0.75,
-    "delivery_modes": ["scooter"],
+    "delivery_modes": [
+      "scooter"
+    ],
     "min_reputation": 10.0,
     "min_recipe_difficulty": 1,
-    "max_recipe_difficulty": 3
+    "max_recipe_difficulty": 3,
+    "max_active_orders": 6
   },
   "eat_in": {
     "display_name": "Eat-in",
     "reward_multiplier": 1.15,
     "sla_multiplier": 1.2,
     "demand_weight": 0.65,
-    "delivery_modes": ["scooter"],
+    "delivery_modes": [
+      "scooter"
+    ],
     "min_reputation": 25.0,
     "min_recipe_difficulty": 2,
-    "max_recipe_difficulty": 5
+    "max_recipe_difficulty": 5,
+    "max_active_orders": 4
   }
 }

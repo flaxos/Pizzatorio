@@ -1,0 +1,23 @@
+{
+  "delivery": {
+    "display_name": "Delivery",
+    "reward_multiplier": 1.0,
+    "sla_multiplier": 1.0,
+    "demand_weight": 1.0,
+    "delivery_modes": ["drone", "scooter"]
+  },
+  "takeaway": {
+    "display_name": "Takeaway",
+    "reward_multiplier": 0.85,
+    "sla_multiplier": 1.35,
+    "demand_weight": 0.75,
+    "delivery_modes": ["scooter"]
+  },
+  "eat_in": {
+    "display_name": "Eat-in",
+    "reward_multiplier": 1.15,
+    "sla_multiplier": 1.2,
+    "demand_weight": 0.65,
+    "delivery_modes": ["scooter"]
+  }
+}

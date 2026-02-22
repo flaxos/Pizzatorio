@@ -63,7 +63,7 @@ class GameUI:
         }
         self.active_section = "Build"
         self.active_subsection = self.subsections[self.active_section][0]
-        self.order_channel = "delivery"
+        self.order_channel = self.sim.order_channel
 
         self.palette = {
             "bg": (12, 15, 24),
@@ -91,7 +91,8 @@ class GameUI:
         if subsection in self.subsections.get(self.active_section, []):
             self.active_subsection = subsection
             if self.active_section == "Orders":
-                self.order_channel = subsection.lower()
+                self.order_channel = subsection.lower().replace("-", "_")
+                self.sim.set_order_channel(self.order_channel)
 
     def _ui_rects(self) -> Dict[str, List[Tuple[pygame.Rect, str]]]:
         top_y = self.grid_px_h + 8
@@ -172,6 +173,7 @@ class GameUI:
                     self.sim.save()
                 elif ev.key == pygame.K_l and SAVE_FILE.exists():
                     self.sim = FactorySim.load()
+                    self.order_channel = self.sim.order_channel
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
                 x, y = pygame.mouse.get_pos()
                 if y >= self.grid_px_h and self._handle_click(x, y):

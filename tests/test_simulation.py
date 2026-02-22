@@ -23,6 +23,7 @@ from config import (
 )
 from game import FactorySim
 from game.entities import Delivery, Item, Order, Tile
+from game.simulation import RECIPES
 
 
 class TestConfig(unittest.TestCase):
@@ -651,6 +652,34 @@ class TestOrderChannels(unittest.TestCase):
         order = sim.orders[0]
         self.assertGreater(order.reward, 0)
         self.assertGreater(order.total_sla, 0)
+
+    def test_takeaway_orders_stay_within_channel_difficulty_window(self):
+        sim = FactorySim(seed=4)
+        sim.orders.clear()
+        sim.reputation = 20.0
+        sim.set_order_channel("takeaway")
+        sim.expansion_level = 6
+
+        for _ in range(25):
+            sim._spawn_order()
+
+        difficulties = [int(RECIPES[order.recipe_key]["difficulty"]) for order in sim.orders]
+        self.assertTrue(difficulties)
+        self.assertLessEqual(max(difficulties), 3)
+
+    def test_eat_in_orders_require_higher_difficulty(self):
+        sim = FactorySim(seed=4)
+        sim.orders.clear()
+        sim.reputation = 60.0
+        sim.set_order_channel("eat_in")
+        sim.expansion_level = 6
+
+        for _ in range(25):
+            sim._spawn_order()
+
+        difficulties = [int(RECIPES[order.recipe_key]["difficulty"]) for order in sim.orders]
+        self.assertTrue(difficulties)
+        self.assertGreaterEqual(min(difficulties), 2)
 
     def test_takeaway_delivery_mode_is_scooter(self):
         sim = FactorySim(seed=4)

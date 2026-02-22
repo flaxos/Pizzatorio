@@ -19,6 +19,8 @@ class OrderChannelDefinition:
     demand_weight: float = 1.0
     delivery_modes: tuple[str, ...] = ("drone", "scooter")
     min_reputation: float = 0.0
+    min_recipe_difficulty: int = 1
+    max_recipe_difficulty: int = 5
 
     def to_runtime_dict(self) -> Dict[str, str | float | List[str]]:
         return {
@@ -28,6 +30,8 @@ class OrderChannelDefinition:
             "demand_weight": self.demand_weight,
             "delivery_modes": list(self.delivery_modes),
             "min_reputation": self.min_reputation,
+            "min_recipe_difficulty": self.min_recipe_difficulty,
+            "max_recipe_difficulty": self.max_recipe_difficulty,
         }
 
 
@@ -40,6 +44,8 @@ DEFAULT_ORDER_CHANNELS: Dict[str, OrderChannelDefinition] = {
         demand_weight=1.0,
         delivery_modes=("drone", "scooter"),
         min_reputation=0.0,
+        min_recipe_difficulty=1,
+        max_recipe_difficulty=5,
     ),
     "takeaway": OrderChannelDefinition(
         key="takeaway",
@@ -49,6 +55,8 @@ DEFAULT_ORDER_CHANNELS: Dict[str, OrderChannelDefinition] = {
         demand_weight=0.75,
         delivery_modes=("scooter",),
         min_reputation=10.0,
+        min_recipe_difficulty=1,
+        max_recipe_difficulty=3,
     ),
     "eat_in": OrderChannelDefinition(
         key="eat_in",
@@ -58,6 +66,8 @@ DEFAULT_ORDER_CHANNELS: Dict[str, OrderChannelDefinition] = {
         demand_weight=0.65,
         delivery_modes=("scooter",),
         min_reputation=25.0,
+        min_recipe_difficulty=2,
+        max_recipe_difficulty=5,
     ),
 }
 
@@ -86,6 +96,8 @@ def _parse_channel_entry(key: str, entry: Dict[str, Any]) -> OrderChannelDefinit
     demand_weight = entry.get("demand_weight", 1.0)
     delivery_modes = entry.get("delivery_modes", ["drone", "scooter"])
     min_reputation = entry.get("min_reputation", 0.0)
+    min_recipe_difficulty = entry.get("min_recipe_difficulty", 1)
+    max_recipe_difficulty = entry.get("max_recipe_difficulty", 5)
 
     if not isinstance(display_name, str) or not display_name.strip():
         return None
@@ -98,6 +110,12 @@ def _parse_channel_entry(key: str, entry: Dict[str, Any]) -> OrderChannelDefinit
     if isinstance(min_reputation, bool) or not isinstance(min_reputation, (int, float)) or not math.isfinite(min_reputation):
         return None
     if float(min_reputation) < 0.0:
+        return None
+    if isinstance(min_recipe_difficulty, bool) or not isinstance(min_recipe_difficulty, int):
+        return None
+    if isinstance(max_recipe_difficulty, bool) or not isinstance(max_recipe_difficulty, int):
+        return None
+    if min_recipe_difficulty < 1 or max_recipe_difficulty < min_recipe_difficulty:
         return None
 
     parsed_modes = _coerce_delivery_modes(delivery_modes)
@@ -112,6 +130,8 @@ def _parse_channel_entry(key: str, entry: Dict[str, Any]) -> OrderChannelDefinit
         demand_weight=float(demand_weight),
         delivery_modes=parsed_modes,
         min_reputation=float(min_reputation),
+        min_recipe_difficulty=min_recipe_difficulty,
+        max_recipe_difficulty=max_recipe_difficulty,
     )
 
 

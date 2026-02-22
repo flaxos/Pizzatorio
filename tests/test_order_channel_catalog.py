@@ -22,6 +22,7 @@ class TestOrderChannelCatalog(unittest.TestCase):
                 "demand_weight": 2.0,
                 "delivery_modes": ["drone"],
                 "min_reputation": 15.0,
+                "max_active_orders": 9,
             }
         }
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
@@ -34,6 +35,7 @@ class TestOrderChannelCatalog(unittest.TestCase):
             self.assertEqual(channels["delivery"]["delivery_modes"], ["drone"])
             self.assertEqual(channels["delivery"]["reward_multiplier"], 1.2)
             self.assertEqual(channels["delivery"]["min_reputation"], 15.0)
+            self.assertEqual(channels["delivery"]["max_active_orders"], 9)
         finally:
             path.unlink(missing_ok=True)
 
@@ -49,6 +51,30 @@ class TestOrderChannelCatalog(unittest.TestCase):
                 "min_reputation": 0.0,
                 "min_recipe_difficulty": 4,
                 "max_recipe_difficulty": 2,
+            }
+        }
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            Path(f.name).write_text(json.dumps(payload))
+            path = Path(f.name)
+
+        try:
+            channels = load_order_channel_catalog(path)
+            self.assertEqual(set(channels.keys()), set(DEFAULT_ORDER_CHANNELS.keys()))
+        finally:
+            path.unlink(missing_ok=True)
+
+
+
+    def test_invalid_max_active_orders_are_filtered(self):
+        payload = {
+            "bad": {
+                "display_name": "Bad",
+                "reward_multiplier": 1.0,
+                "sla_multiplier": 1.0,
+                "demand_weight": 1.0,
+                "delivery_modes": ["drone"],
+                "min_reputation": 0.0,
+                "max_active_orders": 0,
             }
         }
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:

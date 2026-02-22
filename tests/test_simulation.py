@@ -679,6 +679,17 @@ class TestOrderChannels(unittest.TestCase):
         self.assertTrue(difficulties)
         self.assertLessEqual(max(difficulties), 3)
 
+    def test_channel_order_cap_blocks_extra_spawns(self):
+        sim = FactorySim(seed=4)
+        sim.orders.clear()
+        sim.reputation = 20.0
+        sim.set_order_channel("takeaway")
+
+        for _ in range(12):
+            sim._spawn_order()
+
+        self.assertEqual(len(sim.orders), 6)
+
     def test_eat_in_orders_require_higher_difficulty(self):
         sim = FactorySim(seed=4)
         sim.orders.clear()

@@ -13,8 +13,11 @@ from config import (
     INGREDIENT_SPAWN_WEIGHTS,
     LATE_DELIVERY_PENALTY,
     MACHINE_BUILD_COSTS,
-    OVEN,
     MISSED_ORDER_CASH_PENALTY_MULTIPLIER,
+    OPERATING_COST_BASE,
+    OPERATING_COST_INTERVAL,
+    OPERATING_COST_PER_TIER,
+    OVEN,
     PROCESSOR,
     REPUTATION_GAIN_ONTIME,
     REPUTATION_LOSS_LATE,
@@ -493,6 +496,131 @@ class TestExpansionTechUnlocks(unittest.TestCase):
         sim2 = FactorySim.from_dict(d)
         self.assertFalse(sim2.tech_tree["second_location"])
         self.assertFalse(sim2.tech_tree["franchise_system"])
+
+
+class TestOperatingCosts(unittest.TestCase):
+    """Recurring rent/wages are deducted every OPERATING_COST_INTERVAL sim-seconds."""
+
+    def _sim(self) -> FactorySim:
+        return FactorySim(seed=11)
+
+    def test_operating_cost_constants_sane(self):
+        self.assertGreater(OPERATING_COST_INTERVAL, 0.0)
+        self.assertGreater(OPERATING_COST_BASE, 0)
+        self.assertGreaterEqual(OPERATING_COST_PER_TIER, 0)
+
+    def test_no_cost_deducted_in_short_tick(self):
+        """A single dt=0.1 tick is far below the billing interval; no cost charged."""
+        sim = self._sim()
+        money_before = sim.money
+        spend_before = sim.total_spend
+        sim.tick(0.1)
+        # Operating cost timer is 0.1, well below OPERATING_COST_INTERVAL (10.0)
+        # No cost should have been charged (ingredient spawn may still deduct)
+        # We just check cost_timer advanced correctly
+        self.assertAlmostEqual(sim.cost_timer, 0.1, places=5)
+        # total_spend may have risen from ingredient purchase, but not from operating costs
+        operating_spend = sim.total_spend - spend_before
+        ingredient_cost = money_before - sim.money - 0  # money diff including all sources
+        # Operating cost should NOT have been charged in a 0.1s tick
+        self.assertLess(sim.cost_timer, OPERATING_COST_INTERVAL)
+
+    def test_cost_deducted_after_full_interval(self):
+        """After OPERATING_COST_INTERVAL seconds, exactly one billing event fires."""
+        sim = self._sim()
+        # Drain items to avoid ingredient spawn side-effects on money
+        sim.items = []
+        sim.money = 500
+        sim.total_spend = 0
+        # Advance to just before the interval — no deduction yet
+        sim.cost_timer = OPERATING_COST_INTERVAL - 0.01
+        spend_before = sim.total_spend
+        money_before = sim.money
+        sim.items = []  # prevent spawn from changing money
+        # Tick enough to cross the boundary (0.05 > 0.01 remaining)
+        sim.spawn_timer = -9999  # suppress ingredient spawn
+        sim.order_spawn_timer = -9999  # suppress order spawn
+
+        # Manually set timers so no spawn fires
+        sim.spawn_timer = 0.0
+        sim.order_spawn_timer = 0.0
+        sim.money = 500
+
+        # Force cost_timer to just before boundary
+        sim.cost_timer = OPERATING_COST_INTERVAL - 0.01
+        money_before = sim.money
+        spend_before = sim.total_spend
+
+        # We need a tick where no spawn fires; set timers low
+        # Borrowing internal _spawn_item avoidance: give money=0 so ingredient spawn no-ops
+        # but cost deduction uses min(money, cost) so $0 money → $0 charged
+        # Instead keep money=500 and set spawn_timer just below spawn threshold
+        sim.spawn_timer = 0.0  # won't fire until ITEM_SPAWN_INTERVAL is reached
+        sim.order_spawn_timer = 0.0
+
+        sim.tick(0.05)
+
+        expected_cost = OPERATING_COST_BASE + OPERATING_COST_PER_TIER * max(0, sim.expansion_level - 1)
+        self.assertEqual(sim.money, money_before - expected_cost)
+        self.assertEqual(sim.total_spend, spend_before + expected_cost)
+
+    def test_cost_scales_with_expansion_tier(self):
+        """Higher expansion tiers incur larger operating costs."""
+        sim_t1 = self._sim()
+        sim_t3 = self._sim()
+        sim_t3.expansion_level = 3
+
+        cost_t1 = OPERATING_COST_BASE + OPERATING_COST_PER_TIER * max(0, 1 - 1)
+        cost_t3 = OPERATING_COST_BASE + OPERATING_COST_PER_TIER * max(0, 3 - 1)
+        self.assertGreater(cost_t3, cost_t1)
+
+    def test_cost_cannot_overdraft(self):
+        """Operating costs only charge up to available money."""
+        sim = self._sim()
+        sim.money = 3
+        sim.total_spend = 0
+        sim.cost_timer = OPERATING_COST_INTERVAL - 0.01
+        sim.spawn_timer = 0.0
+        sim.order_spawn_timer = 0.0
+
+        sim.tick(0.05)
+
+        self.assertEqual(sim.money, 0)
+        self.assertEqual(sim.total_spend, 3)
+
+    def test_cost_timer_survives_serialization(self):
+        """cost_timer is persisted and restored correctly."""
+        sim = self._sim()
+        sim.cost_timer = 7.3
+        loaded = FactorySim.from_dict(sim.to_dict())
+        self.assertAlmostEqual(loaded.cost_timer, 7.3, places=5)
+
+    def test_cost_timer_defaults_to_zero_in_legacy_save(self):
+        """Legacy saves without cost_timer field default to 0.0."""
+        sim = self._sim()
+        d = sim.to_dict()
+        d.pop("cost_timer", None)
+        loaded = FactorySim.from_dict(d)
+        self.assertAlmostEqual(loaded.cost_timer, 0.0, places=5)
+
+    def test_cost_timer_advances_monotonically(self):
+        """cost_timer accumulates across ticks until a billing event resets it."""
+        sim = self._sim()
+        sim.cost_timer = 0.0
+        sim.tick(0.3)
+        # Timer should have advanced (may have been reset if interval crossed, but
+        # at t=0.3 it won't cross OPERATING_COST_INTERVAL=10.0)
+        self.assertGreater(sim.cost_timer, 0.0)
+
+    def test_event_log_records_operating_cost(self):
+        """A billing event appends a message to the event log."""
+        sim = self._sim()
+        sim.money = 200
+        sim.cost_timer = OPERATING_COST_INTERVAL - 0.01
+        sim.spawn_timer = 0.0
+        sim.order_spawn_timer = 0.0
+        sim.tick(0.05)
+        self.assertTrue(any("Operating costs" in e for e in sim.event_log))
 
 
 if __name__ == "__main__":

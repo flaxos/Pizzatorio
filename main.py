@@ -107,13 +107,16 @@ class GameUI:
 
         self.camera_x = 0.0
         self.camera_y = 0.0
-        self.zoom = 1.0
-        self.min_zoom = 0.6
-        self.max_zoom = 2.2
+        self.zoom = 1.25 if self.touch_mode else 1.0
+        self.min_zoom = 0.8 if self.touch_mode else 0.6
+        self.max_zoom = 2.6 if self.touch_mode else 2.2
 
-        self.touch_target_min_h = 56 if self.touch_mode else 34
-        self.touch_horizontal_padding = 26 if self.touch_mode else 14
-        self.hit_slop = 12 if self.touch_mode else 5
+        self.ui_scale = 1.35 if self.touch_mode else 1.0
+        self.tile_icon_scale = 1.28 if self.touch_mode else 1.0
+
+        self.touch_target_min_h = int(56 * self.ui_scale) if self.touch_mode else 34
+        self.touch_horizontal_padding = int(26 * self.ui_scale) if self.touch_mode else 14
+        self.hit_slop = int(14 * self.ui_scale) if self.touch_mode else 5
 
         self._reflow_layout(*self.screen.get_size())
         pygame.display.set_caption("Pizzatorio Factory")
@@ -237,8 +240,8 @@ class GameUI:
         top_strip_h = max(54, int(viewport_h * 0.1)) if self.show_top_kpis else 0
         sheet_heights = {
             "hidden": 0,
-            "compact": max(64 if self.touch_mode else 56, int(viewport_h * 0.11)),
-            "expanded": max(210 if self.touch_mode else 170, int(viewport_h * (0.38 if self.touch_mode else 0.3))),
+            "compact": max(62 if self.touch_mode else 56, int(viewport_h * 0.108)),
+            "expanded": max(198 if self.touch_mode else 170, int(viewport_h * (0.34 if self.touch_mode else 0.3))),
         }
         bottom_sheet_h = sheet_heights.get(self.bottom_sheet_state, sheet_heights["expanded"])
 
@@ -289,9 +292,9 @@ class GameUI:
         self.panel_h = bottom_sheet_h
         self._clamp_camera()
 
-        chip_size = max(17, int(self.touch_target_min_h * 0.38))
+        chip_size = max(17, int(self.touch_target_min_h * 0.42))
         small_size = max(15, int(chip_size * 0.86))
-        body_size = max(20, int(chip_size * 1.15))
+        body_size = max(21, int(chip_size * 1.2))
         self.chip_font = pygame.font.SysFont("arial", chip_size)
         self.small = pygame.font.SysFont("arial", small_size)
         self.font = pygame.font.SysFont("arial", body_size)
@@ -857,36 +860,52 @@ class GameUI:
     def _draw_tile_icon(self, tile, rect: pygame.Rect) -> None:
         cx, cy = rect.center
         icon = (242, 246, 255)
+        scale = self.tile_icon_scale * max(0.72, min(1.28, rect.w / 44.0))
+
+        def px(value: float) -> int:
+            return max(1, int(round(value * scale)))
+
         if tile.kind in (CONVEYOR, SOURCE):
             dx, dy = DIRS[tile.rot]
-            tip = (cx + dx * 14, cy + dy * 14)
-            side = (dy * 9, -dx * 9)
-            base = (cx - dx * 8, cy - dy * 8)
+            tip = (cx + dx * px(14), cy + dy * px(14))
+            side = (dy * px(9), -dx * px(9))
+            base = (cx - dx * px(8), cy - dy * px(8))
             points = [tip, (base[0] + side[0], base[1] + side[1]), (base[0] - side[0], base[1] - side[1])]
             pygame.draw.polygon(self.screen, icon, points)
         elif tile.kind == PROCESSOR:
-            chip = pygame.Rect(0, 0, 19, 19)
+            chip = pygame.Rect(0, 0, px(19), px(19))
             chip.center = (cx, cy)
-            pygame.draw.rect(self.screen, icon, chip, width=2, border_radius=4)
+            pygame.draw.rect(self.screen, icon, chip, width=max(2, px(2)), border_radius=px(4))
             for off in (-7, -3, 1, 5):
-                pygame.draw.line(self.screen, icon, (chip.left - 4, cy + off), (chip.left, cy + off), 2)
-                pygame.draw.line(self.screen, icon, (chip.right, cy + off), (chip.right + 4, cy + off), 2)
+                y = cy + px(off)
+                pygame.draw.line(self.screen, icon, (chip.left - px(4), y), (chip.left, y), max(2, px(2)))
+                pygame.draw.line(self.screen, icon, (chip.right, y), (chip.right + px(4), y), max(2, px(2)))
         elif tile.kind == OVEN:
-            pygame.draw.circle(self.screen, icon, (cx, cy + 5), 10, width=2)
-            flame = [(cx, cy - 8), (cx - 7, cy + 3), (cx, cy + 0), (cx + 7, cy + 3)]
+            pygame.draw.circle(self.screen, icon, (cx, cy + px(5)), px(10), width=max(2, px(2)))
+            flame = [(cx, cy - px(8)), (cx - px(7), cy + px(3)), (cx, cy), (cx + px(7), cy + px(3))]
             pygame.draw.polygon(self.screen, icon, flame)
         elif tile.kind == BOT_DOCK:
-            pygame.draw.circle(self.screen, icon, (cx, cy - 3), 9, width=2)
-            pygame.draw.circle(self.screen, icon, (cx - 3, cy - 4), 1)
-            pygame.draw.circle(self.screen, icon, (cx + 3, cy - 4), 1)
-            pygame.draw.rect(self.screen, icon, (cx - 10, cy + 8, 20, 3), border_radius=2)
+            pygame.draw.circle(self.screen, icon, (cx, cy - px(3)), px(9), width=max(2, px(2)))
+            pygame.draw.circle(self.screen, icon, (cx - px(3), cy - px(4)), max(1, px(1)))
+            pygame.draw.circle(self.screen, icon, (cx + px(3), cy - px(4)), max(1, px(1)))
+            pygame.draw.rect(self.screen, icon, (cx - px(10), cy + px(8), px(20), max(2, px(3))), border_radius=px(2))
         elif tile.kind == ASSEMBLY_TABLE:
-            pygame.draw.rect(self.screen, icon, pygame.Rect(cx - 13, cy - 4, 26, 12), width=2, border_radius=3)
-            pygame.draw.line(self.screen, icon, (cx - 9, cy + 8), (cx - 9, cy + 14), 2)
-            pygame.draw.line(self.screen, icon, (cx + 9, cy + 8), (cx + 9, cy + 14), 2)
+            pygame.draw.rect(
+                self.screen,
+                icon,
+                pygame.Rect(cx - px(13), cy - px(4), px(26), px(12)),
+                width=max(2, px(2)),
+                border_radius=px(3),
+            )
+            pygame.draw.line(
+                self.screen, icon, (cx - px(9), cy + px(8)), (cx - px(9), cy + px(14)), max(2, px(2))
+            )
+            pygame.draw.line(
+                self.screen, icon, (cx + px(9), cy + px(8)), (cx + px(9), cy + px(14)), max(2, px(2))
+            )
         elif tile.kind == SINK:
-            pygame.draw.circle(self.screen, icon, (cx, cy), 11, width=2)
-            pygame.draw.circle(self.screen, icon, (cx, cy), 4)
+            pygame.draw.circle(self.screen, icon, (cx, cy), px(11), width=max(2, px(2)))
+            pygame.draw.circle(self.screen, icon, (cx, cy), px(4))
 
     def _draw_metric_card(self, x: int, y: int, w: int, title: str, value: float, hue: Tuple[int, int, int]) -> None:
         card = pygame.Rect(x, y, w, 54)

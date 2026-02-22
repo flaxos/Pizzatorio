@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from research_catalog import load_research_catalog
+
 # ---------------------------------------------------------------------------
 # Grid / display
 # ---------------------------------------------------------------------------
@@ -55,27 +57,10 @@ PROCESS_FLOW: dict[str, dict] = {
 
 # ---------------------------------------------------------------------------
 # Tech tree unlock thresholds (tech_key → research_points_required)
-#
-# Branches:
-#   Cooking     — ovens, turbo_oven, precision_cooking
-#   Automation  — bots, hygiene_training
-#   Logistics   — turbo_belts, priority_dispatch, double_spawn
+# Loaded from the data-driven research catalog with safe defaults.
 # ---------------------------------------------------------------------------
 TECH_UNLOCK_COSTS: dict[str, float] = {
-    # Cooking branch
-    "ovens": 12.0,
-    "turbo_oven": 40.0,
-    "precision_cooking": 95.0,
-    # Automation branch
-    "bots": 28.0,
-    "hygiene_training": 50.0,
-    # Logistics branch
-    "turbo_belts": 55.0,
-    "priority_dispatch": 85.0,
-    "double_spawn": 140.0,
-    # Expansion branch
-    "second_location": 180.0,
-    "franchise_system": 320.0,
+    key: float(entry["cost"]) for key, entry in load_research_catalog().items()
 }
 
 # ---------------------------------------------------------------------------

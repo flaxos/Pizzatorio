@@ -635,3 +635,22 @@ class TestOrderChannels(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_precision_cooking_does_not_unlock_without_turbo_oven_prerequisite():
+    sim = FactorySim(seed=30)
+    sim.research_points = TECH_UNLOCK_COSTS["precision_cooking"]
+
+    sim._process_research()
+
+    assert not sim.tech_tree["precision_cooking"]
+
+
+def test_precision_cooking_unlocks_after_turbo_oven_prerequisite_met():
+    sim = FactorySim(seed=31)
+    sim.tech_tree["turbo_oven"] = True
+    sim.research_points = TECH_UNLOCK_COSTS["precision_cooking"]
+
+    sim._process_research()
+
+    assert sim.tech_tree["precision_cooking"]

@@ -60,6 +60,7 @@ from game.entities import Delivery, Item, Order, Tile
 from commercial_catalog import load_commercial_catalog
 from order_channel_catalog import load_order_channel_catalog
 from recipe_catalog import load_recipe_catalog
+from research_catalog import load_research_catalog
 
 RECIPES_FILE = Path("data/recipes.json")
 RECIPES = load_recipe_catalog(RECIPES_FILE)
@@ -67,6 +68,7 @@ ORDER_CHANNELS_FILE = Path("data/order_channels.json")
 ORDER_CHANNELS = load_order_channel_catalog(ORDER_CHANNELS_FILE)
 COMMERCIALS_FILE = Path("data/commercials.json")
 COMMERCIALS = load_commercial_catalog(COMMERCIALS_FILE)
+RESEARCH = load_research_catalog()
 
 
 def clamp(v: float, lo: float, hi: float) -> float:
@@ -259,8 +261,14 @@ class FactorySim:
         self.research_focus = locked[(idx + 1) % len(locked)]
         return self.research_focus
 
+    def _research_prerequisites_met(self, tech: str) -> bool:
+        prerequisites = RESEARCH.get(tech, {}).get("prerequisites", [])
+        return all(self.tech_tree.get(str(prereq), False) for prereq in prerequisites)
+
     def try_unlock_research_focus(self) -> bool:
         if self.research_focus and not self.tech_tree.get(self.research_focus, False):
+            if not self._research_prerequisites_met(self.research_focus):
+                return False
             focus_cost = TECH_UNLOCK_COSTS.get(self.research_focus, float("inf"))
             if self.research_points >= focus_cost:
                 self.tech_tree[self.research_focus] = True
@@ -370,8 +378,15 @@ class FactorySim:
     def _process_research(self) -> None:
         if self.try_unlock_research_focus():
             return
+
+        tech_state_at_tick_start = dict(self.tech_tree)
         for tech, cost in TECH_UNLOCK_COSTS.items():
-            if not self.tech_tree.get(tech, False) and self.research_points >= cost:
+            if tech_state_at_tick_start.get(tech, False):
+                continue
+            prerequisites = RESEARCH.get(tech, {}).get("prerequisites", [])
+            if not all(tech_state_at_tick_start.get(str(prereq), False) for prereq in prerequisites):
+                continue
+            if self.research_points >= cost:
                 self.tech_tree[tech] = True
 
     def _next_pos(self, x: int, y: int, rot: int) -> Tuple[int, int]:

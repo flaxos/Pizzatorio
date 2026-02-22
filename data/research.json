@@ -1,0 +1,62 @@
+{
+  "ovens": {
+    "display_name": "Oven Foundations",
+    "branch": "cooking",
+    "cost": 12.0,
+    "prerequisites": []
+  },
+  "bots": {
+    "display_name": "Bot Docks",
+    "branch": "automation",
+    "cost": 28.0,
+    "prerequisites": []
+  },
+  "turbo_oven": {
+    "display_name": "Turbo Ovens",
+    "branch": "cooking",
+    "cost": 40.0,
+    "prerequisites": []
+  },
+  "hygiene_training": {
+    "display_name": "Hygiene Training",
+    "branch": "automation",
+    "cost": 50.0,
+    "prerequisites": []
+  },
+  "turbo_belts": {
+    "display_name": "Turbo Belts",
+    "branch": "logistics",
+    "cost": 55.0,
+    "prerequisites": []
+  },
+  "priority_dispatch": {
+    "display_name": "Priority Dispatch",
+    "branch": "logistics",
+    "cost": 85.0,
+    "prerequisites": []
+  },
+  "precision_cooking": {
+    "display_name": "Precision Cooking",
+    "branch": "cooking",
+    "cost": 95.0,
+    "prerequisites": ["turbo_oven"]
+  },
+  "double_spawn": {
+    "display_name": "Double Spawn",
+    "branch": "logistics",
+    "cost": 140.0,
+    "prerequisites": []
+  },
+  "second_location": {
+    "display_name": "Second Location",
+    "branch": "expansion",
+    "cost": 180.0,
+    "prerequisites": []
+  },
+  "franchise_system": {
+    "display_name": "Franchise System",
+    "branch": "expansion",
+    "cost": 320.0,
+    "prerequisites": []
+  }
+}

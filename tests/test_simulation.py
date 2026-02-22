@@ -596,7 +596,19 @@ class TestOrderChannels(unittest.TestCase):
     def test_takeaway_delivery_mode_is_scooter(self):
         sim = FactorySim(seed=4)
         sim.set_order_channel("takeaway")
-        sim._enqueue_delivery(Order(recipe_key="margherita", remaining_sla=20.0, total_sla=20.0, reward=12))
+        sim._enqueue_delivery(
+            Order(recipe_key="margherita", remaining_sla=20.0, total_sla=20.0, reward=12, channel_key="takeaway")
+        )
+        self.assertEqual(sim.deliveries[-1].mode, "scooter")
+
+    def test_delivery_uses_order_channel_after_channel_switch(self):
+        sim = FactorySim(seed=4)
+        sim.orders.clear()
+        sim.set_order_channel("takeaway")
+        sim._spawn_order()
+        order = sim.orders.pop()
+        sim.set_order_channel("delivery")
+        sim._enqueue_delivery(order)
         self.assertEqual(sim.deliveries[-1].mode, "scooter")
 
     def test_order_channel_round_trip(self):

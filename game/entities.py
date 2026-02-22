@@ -54,3 +54,4 @@ class Order:
     remaining_sla: float
     total_sla: float
     reward: int
+    channel_key: str = "delivery"

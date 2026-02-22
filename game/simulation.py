@@ -265,11 +265,15 @@ class FactorySim:
             recipe_key = default_recipe
         reward = int(order.get("reward", RECIPES[recipe_key]["sell_price"]))
         total_sla = float(order.get("total_sla", RECIPES[recipe_key]["sla"]))
+        channel_key = str(order.get("channel_key", "delivery"))
+        if channel_key not in ORDER_CHANNELS:
+            channel_key = "delivery" if "delivery" in ORDER_CHANNELS else next(iter(ORDER_CHANNELS))
         return {
             "recipe_key": recipe_key,
             "remaining_sla": float(order.get("remaining_sla", total_sla)),
             "total_sla": total_sla,
             "reward": reward,
+            "channel_key": channel_key,
         }
 
     # ------------------------------------------------------------------
@@ -346,6 +350,7 @@ class FactorySim:
                 remaining_sla=order_sla,
                 total_sla=order_sla,
                 reward=order_reward,
+                channel_key=self.order_channel,
             )
         )
 
@@ -357,7 +362,7 @@ class FactorySim:
         self.items.append(Item(1, 7, 0.0, stage="raw", ingredient_type=ingredient_type))
 
     def _enqueue_delivery(self, order: Order) -> None:
-        channel_cfg = ORDER_CHANNELS.get(self.order_channel, {})
+        channel_cfg = ORDER_CHANNELS.get(order.channel_key, ORDER_CHANNELS.get(self.order_channel, {}))
         modes = channel_cfg.get("delivery_modes", ["drone", "scooter"])
         mode = self.rng.choice([str(m) for m in modes])
         travel = self.rng.uniform(3.5, 7.5) if mode == "drone" else self.rng.uniform(5.0, 10.0)

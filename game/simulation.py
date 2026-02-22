@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from config import (
+    ASSEMBLY_TABLE,
+    ASSEMBLY_TABLE_SPEED,
     BOT_AUTO_CHARGE_RATE,
     BOT_AUTO_DELIVERY_REDUCTION,
     BOT_DOCK,
@@ -213,6 +215,7 @@ class FactorySim:
             "stage": str(item.get("stage", "raw")),
             "delivery_boost": float(item.get("delivery_boost", 0.0)),
             "ingredient_type": ingredient_type,
+            "recipe_key": str(item.get("recipe_key", "")),
         }
 
     @staticmethod
@@ -380,6 +383,8 @@ class FactorySim:
             elif tile.kind == OVEN:
                 oven_bonus = TURBO_OVEN_SPEED_BONUS if self.tech_tree.get("turbo_oven", False) else 0.0
                 speed = 0.35 + oven_bonus + (self.hygiene / 280.0)
+            elif tile.kind == ASSEMBLY_TABLE:
+                speed = ASSEMBLY_TABLE_SPEED
             item.progress += dt * speed
 
             if item.progress < 1.0:
@@ -389,13 +394,15 @@ class FactorySim:
             item.progress = 0.0
             nx, ny = item.x, item.y
 
-            if tile.kind in (CONVEYOR, SOURCE, MACHINE, PROCESSOR, OVEN, BOT_DOCK):
+            if tile.kind in (CONVEYOR, SOURCE, MACHINE, PROCESSOR, OVEN, BOT_DOCK, ASSEMBLY_TABLE):
                 flow = PROCESS_FLOW.get(tile.kind)
                 if flow and item.stage == flow["from"]:
                     item.stage = flow["to"]
                     self.research_points += flow["research_gain"]
                     if "delivery_boost" in flow:
                         item.delivery_boost = flow["delivery_boost"]
+                if tile.kind == ASSEMBLY_TABLE and self.orders and not item.recipe_key:
+                    item.recipe_key = self.orders[0].recipe_key
                 nx, ny = self._next_pos(item.x, item.y, tile.rot)
             elif tile.kind == EMPTY:
                 blocked += 1
@@ -406,7 +413,14 @@ class FactorySim:
             ntile = self.grid[ny][nx]
             if ntile.kind == SINK and item.stage == "baked":
                 if self.orders:
-                    order = self.orders.pop(0)
+                    if item.recipe_key:
+                        order_idx = next(
+                            (i for i, o in enumerate(self.orders) if o.recipe_key == item.recipe_key),
+                            0,
+                        )
+                    else:
+                        order_idx = 0
+                    order = self.orders.pop(order_idx)
                     self._enqueue_delivery(order)
                     if item.delivery_boost > 0:
                         self.deliveries[-1].remaining = max(1.5, self.deliveries[-1].remaining - item.delivery_boost)

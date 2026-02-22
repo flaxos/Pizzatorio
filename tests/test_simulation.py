@@ -575,5 +575,36 @@ class TestAssemblyTable(unittest.TestCase):
         self.assertEqual(run(200), run(200))
 
 
+class TestOrderChannels(unittest.TestCase):
+    def test_set_order_channel_ignores_unknown(self):
+        sim = FactorySim(seed=4)
+        sim.set_order_channel("takeaway")
+        self.assertEqual(sim.order_channel, "takeaway")
+        sim.set_order_channel("unknown")
+        self.assertEqual(sim.order_channel, "takeaway")
+
+    def test_takeaway_order_uses_channel_modifiers(self):
+        sim = FactorySim(seed=4)
+        sim.orders.clear()
+        sim.set_order_channel("takeaway")
+        sim._spawn_order()
+        self.assertEqual(len(sim.orders), 1)
+        order = sim.orders[0]
+        self.assertGreater(order.reward, 0)
+        self.assertGreater(order.total_sla, 0)
+
+    def test_takeaway_delivery_mode_is_scooter(self):
+        sim = FactorySim(seed=4)
+        sim.set_order_channel("takeaway")
+        sim._enqueue_delivery(Order(recipe_key="margherita", remaining_sla=20.0, total_sla=20.0, reward=12))
+        self.assertEqual(sim.deliveries[-1].mode, "scooter")
+
+    def test_order_channel_round_trip(self):
+        sim = FactorySim(seed=4)
+        sim.set_order_channel("eat_in")
+        loaded = FactorySim.from_dict(sim.to_dict())
+        self.assertEqual(loaded.order_channel, "eat_in")
+
+
 if __name__ == "__main__":
     unittest.main()

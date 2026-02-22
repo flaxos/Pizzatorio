@@ -121,6 +121,10 @@ class FactorySim:
         self.commercial_strategy: str = next(iter(COMMERCIALS))
         self.research_focus: str = ""
         self.cost_timer: float = 0.0
+        self.channel_stats: Dict[str, Dict[str, int]] = {
+            key: {"completed": 0, "ontime": 0, "late": 0, "missed": 0, "revenue": 0}
+            for key in ORDER_CHANNELS
+        }
         self._log_event("Factory initialized")
 
         self.place_static_world()
@@ -171,6 +175,7 @@ class FactorySim:
             "commercial_strategy": self.commercial_strategy,
             "research_focus": self.research_focus,
             "cost_timer": self.cost_timer,
+            "channel_stats": self.channel_stats,
         }
 
     @classmethod
@@ -247,7 +252,39 @@ class FactorySim:
             if sim._research_prerequisites_met(saved_focus):
                 sim.research_focus = saved_focus
         sim.cost_timer = float(data.get("cost_timer", 0.0))
+        sim.channel_stats = sim._normalize_channel_stats(data.get("channel_stats", {}))
         return sim
+
+    def _normalize_channel_stats(self, raw_stats: Dict) -> Dict[str, Dict[str, int]]:
+        stats: Dict[str, Dict[str, int]] = {
+            key: {"completed": 0, "ontime": 0, "late": 0, "missed": 0, "revenue": 0}
+            for key in ORDER_CHANNELS
+        }
+        if not isinstance(raw_stats, dict):
+            return stats
+        for channel, values in raw_stats.items():
+            if channel not in ORDER_CHANNELS or not isinstance(values, dict):
+                continue
+            stats[channel] = {
+                "completed": max(0, int(values.get("completed", 0))),
+                "ontime": max(0, int(values.get("ontime", 0))),
+                "late": max(0, int(values.get("late", 0))),
+                "missed": max(0, int(values.get("missed", 0))),
+                "revenue": max(0, int(values.get("revenue", 0))),
+            }
+        return stats
+
+    def channel_stats_rows(self) -> List[str]:
+        rows: List[str] = []
+        for channel in ORDER_CHANNELS:
+            stats = self.channel_stats.get(channel, {})
+            label = channel.replace("_", "-").title()
+            rows.append(
+                f"{label}: done {int(stats.get('completed', 0))} "
+                f"(on-time {int(stats.get('ontime', 0))}, late {int(stats.get('late', 0))}, "
+                f"missed {int(stats.get('missed', 0))}) rev ${int(stats.get('revenue', 0))}"
+            )
+        return rows
 
     def _log_event(self, message: str) -> None:
         self.event_log.append(message)
@@ -593,6 +630,10 @@ class FactorySim:
             self.money += order.reward
             self.total_revenue += order.reward
             self.reputation = clamp(self.reputation + REPUTATION_GAIN_ONTIME, 0.0, 100.0)
+            stats = self.channel_stats.setdefault(order.channel_key, {"completed": 0, "ontime": 0, "late": 0, "missed": 0, "revenue": 0})
+            stats["completed"] += 1
+            stats["ontime"] += 1
+            stats["revenue"] += order.reward
             return
 
         channel_cfg = ORDER_CHANNELS.get(order.channel_key, ORDER_CHANNELS.get(self.order_channel, {}))
@@ -613,6 +654,7 @@ class FactorySim:
                 recipe_key=order.recipe_key,
                 reward=reward,
                 late_reward_multiplier=late_reward_multiplier,
+                channel_key=order.channel_key,
             )
         )
 
@@ -795,6 +837,8 @@ class FactorySim:
             self.money -= charged
             self.total_spend += charged
             self._log_event(f"Order expired: {order.recipe_key} (-${charged})")
+            stats = self.channel_stats.setdefault(order.channel_key, {"completed": 0, "ontime": 0, "late": 0, "missed": 0, "revenue": 0})
+            stats["missed"] += 1
         self.orders = next_orders
 
         # Delivery completion
@@ -814,11 +858,19 @@ class FactorySim:
                     self.money += d.reward
                     self.total_revenue += d.reward
                     self.reputation = clamp(self.reputation + REPUTATION_GAIN_ONTIME, 0.0, 100.0)
+                    stats = self.channel_stats.setdefault(d.channel_key, {"completed": 0, "ontime": 0, "late": 0, "missed": 0, "revenue": 0})
+                    stats["completed"] += 1
+                    stats["ontime"] += 1
+                    stats["revenue"] += d.reward
                 else:
                     late_reward = int(d.reward * late_penalty * max(0.1, d.late_reward_multiplier))
                     self.money += late_reward
                     self.total_revenue += late_reward
                     self.reputation = clamp(self.reputation - REPUTATION_LOSS_LATE, 0.0, 100.0)
+                    stats = self.channel_stats.setdefault(d.channel_key, {"completed": 0, "ontime": 0, "late": 0, "missed": 0, "revenue": 0})
+                    stats["completed"] += 1
+                    stats["late"] += 1
+                    stats["revenue"] += late_reward
             else:
                 next_deliveries.append(d)
         self.deliveries = next_deliveries

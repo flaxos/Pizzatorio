@@ -45,6 +45,7 @@ class Delivery:
     reward: int
     elapsed: float = 0.0
     late_reward_multiplier: float = 1.0
+    channel_key: str = "delivery"
 
 
 @dataclass

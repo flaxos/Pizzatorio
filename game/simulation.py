@@ -450,15 +450,27 @@ class FactorySim:
         dx, dy = DIRS[rot % 4]
         return x + dx, y + dy
 
-    def _available_recipes(self) -> List[str]:
-        return [
+    def _available_recipes(self, *, channel_key: str | None = None) -> List[str]:
+        available = [
             key
             for key, recipe in RECIPES.items()
             if recipe.get("unlock_tier", 0) <= (self.expansion_level - 1)
         ]
+        if not channel_key:
+            return available
+
+        channel_cfg = ORDER_CHANNELS.get(channel_key, {})
+        min_difficulty = int(channel_cfg.get("min_recipe_difficulty", 1))
+        max_difficulty = int(channel_cfg.get("max_recipe_difficulty", 5))
+        filtered = [
+            key
+            for key in available
+            if min_difficulty <= int(RECIPES[key].get("difficulty", 1)) <= max_difficulty
+        ]
+        return filtered if filtered else available
 
     def _spawn_order(self) -> None:
-        available = self._available_recipes()
+        available = self._available_recipes(channel_key=self.order_channel)
         if not available:
             return
         channel_cfg = ORDER_CHANNELS.get(self.order_channel, {})

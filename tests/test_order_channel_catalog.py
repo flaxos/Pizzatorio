@@ -37,6 +37,30 @@ class TestOrderChannelCatalog(unittest.TestCase):
         finally:
             path.unlink(missing_ok=True)
 
+
+    def test_invalid_recipe_difficulty_bounds_are_filtered(self):
+        payload = {
+            "bad": {
+                "display_name": "Bad",
+                "reward_multiplier": 1.0,
+                "sla_multiplier": 1.0,
+                "demand_weight": 1.0,
+                "delivery_modes": ["drone"],
+                "min_reputation": 0.0,
+                "min_recipe_difficulty": 4,
+                "max_recipe_difficulty": 2,
+            }
+        }
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            Path(f.name).write_text(json.dumps(payload))
+            path = Path(f.name)
+
+        try:
+            channels = load_order_channel_catalog(path)
+            self.assertEqual(set(channels.keys()), set(DEFAULT_ORDER_CHANNELS.keys()))
+        finally:
+            path.unlink(missing_ok=True)
+
     def test_invalid_entries_are_filtered(self):
         payload = {
             "bad": {

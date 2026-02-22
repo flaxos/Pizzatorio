@@ -5,7 +5,9 @@
     "sla_multiplier": 1.0,
     "demand_weight": 1.0,
     "delivery_modes": ["drone", "scooter"],
-    "min_reputation": 0.0
+    "min_reputation": 0.0,
+    "min_recipe_difficulty": 1,
+    "max_recipe_difficulty": 5
   },
   "takeaway": {
     "display_name": "Takeaway",
@@ -13,7 +15,9 @@
     "sla_multiplier": 1.35,
     "demand_weight": 0.75,
     "delivery_modes": ["scooter"],
-    "min_reputation": 10.0
+    "min_reputation": 10.0,
+    "min_recipe_difficulty": 1,
+    "max_recipe_difficulty": 3
   },
   "eat_in": {
     "display_name": "Eat-in",
@@ -21,6 +25,8 @@
     "sla_multiplier": 1.2,
     "demand_weight": 0.65,
     "delivery_modes": ["scooter"],
-    "min_reputation": 25.0
+    "min_reputation": 25.0,
+    "min_recipe_difficulty": 2,
+    "max_recipe_difficulty": 5
   }
 }

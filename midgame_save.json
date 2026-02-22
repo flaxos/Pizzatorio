@@ -674,8 +674,8 @@
         "hygiene_penalty": 0
       },
       {
-        "kind": "empty",
-        "rot": 0,
+        "kind": "bot_dock",
+        "rot": 1,
         "hygiene_penalty": 0
       },
       {
@@ -751,17 +751,7 @@
         "hygiene_penalty": 0
       },
       {
-        "kind": "conveyor",
-        "rot": 0,
-        "hygiene_penalty": 0
-      },
-      {
-        "kind": "conveyor",
-        "rot": 0,
-        "hygiene_penalty": 0
-      },
-      {
-        "kind": "machine",
+        "kind": "processor",
         "rot": 0,
         "hygiene_penalty": 0
       },
@@ -786,7 +776,17 @@
         "hygiene_penalty": 0
       },
       {
+        "kind": "oven",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
         "kind": "conveyor",
+        "rot": 0,
+        "hygiene_penalty": 0
+      },
+      {
+        "kind": "bot_dock",
         "rot": 0,
         "hygiene_penalty": 0
       },
@@ -1533,103 +1533,115 @@
   ],
   "items": [
     {
-      "x": 17,
+      "x": 16,
       "y": 7,
-      "progress": 0.4,
-      "cooked": true
-    },
-    {
-      "x": 15,
-      "y": 7,
-      "progress": 0.7999999999999999,
-      "cooked": true
+      "progress": 0.5,
+      "stage": "baked",
+      "delivery_boost": 1.2,
+      "ingredient_type": "flour"
     },
     {
       "x": 14,
       "y": 7,
-      "progress": 0.0,
-      "cooked": true
+      "progress": 0.8999999999999999,
+      "stage": "baked",
+      "delivery_boost": 0.0,
+      "ingredient_type": "cheese"
     },
     {
-      "x": 12,
+      "x": 13,
       "y": 7,
-      "progress": 0.4,
-      "cooked": true
+      "progress": 0.1,
+      "stage": "baked",
+      "delivery_boost": 0.0,
+      "ingredient_type": "cheese"
+    },
+    {
+      "x": 11,
+      "y": 7,
+      "progress": 0.9999999999999999,
+      "stage": "processed",
+      "delivery_boost": 0.0,
+      "ingredient_type": "flour"
     },
     {
       "x": 10,
       "y": 7,
-      "progress": 0.7999999999999999,
-      "cooked": true
+      "progress": 0.30000000000000004,
+      "stage": "processed",
+      "delivery_boost": 0.0,
+      "ingredient_type": "flour"
     },
     {
-      "x": 9,
+      "x": 8,
       "y": 7,
-      "progress": 0.24339777010067282,
-      "cooked": false
+      "progress": 0.7,
+      "stage": "processed",
+      "delivery_boost": 0.0,
+      "ingredient_type": "tomato"
     },
     {
       "x": 7,
       "y": 7,
-      "progress": 0.7,
-      "cooked": false
+      "progress": 0.08846221693690015,
+      "stage": "raw",
+      "delivery_boost": 0.0,
+      "ingredient_type": "flour"
     },
     {
-      "x": 6,
+      "x": 5,
       "y": 7,
-      "progress": 0.0,
-      "cooked": false
+      "progress": 0.5,
+      "stage": "raw",
+      "delivery_boost": 0.0,
+      "ingredient_type": "pepperoni"
     },
     {
-      "x": 4,
+      "x": 3,
       "y": 7,
-      "progress": 0.4,
-      "cooked": false
+      "progress": 0.8999999999999999,
+      "stage": "raw",
+      "delivery_boost": 0.0,
+      "ingredient_type": "tomato"
     },
     {
       "x": 2,
       "y": 7,
-      "progress": 0.7999999999999999,
-      "cooked": false
-    },
-    {
-      "x": 1,
-      "y": 7,
-      "progress": 0.1,
-      "cooked": false
+      "progress": 0.2,
+      "stage": "raw",
+      "delivery_boost": 0.0,
+      "ingredient_type": "onion"
     }
   ],
   "deliveries": [
     {
       "mode": "drone",
-      "remaining": 0.7957950342777432,
-      "sla": 8.0,
-      "duration": 7.2957950342777345
-    },
-    {
-      "mode": "scooter",
-      "remaining": 4.939326803045333,
+      "remaining": 2.0265748888114974,
       "sla": 11.0,
-      "duration": 9.739326803045316
-    },
-    {
-      "mode": "scooter",
-      "remaining": 5.25467236519928,
-      "sla": 11.0,
-      "duration": 8.25467236519927
-    },
-    {
-      "mode": "drone",
-      "remaining": 5.5850971679652375,
-      "sla": 8.0,
-      "duration": 6.785097167965233
+      "duration": 4.126574888811499,
+      "recipe_key": "margherita",
+      "reward": 12,
+      "elapsed": 2.1000000000000005
     }
   ],
-  "time": 45.00000000000037,
-  "spawn_timer": 0.0,
-  "hygiene": 79.52669807382672,
+  "orders": [],
+  "time": 30.000000000000156,
+  "spawn_timer": 1.2,
+  "order_spawn_timer": 2.0000000000000004,
+  "hygiene": 84.61687726118032,
   "bottleneck": 0,
-  "completed": 10,
-  "ontime": 10,
-  "last_hygiene_event": 38.50000000000028
+  "expansion_level": 1,
+  "expansion_progress": 10.790000000000028,
+  "research_points": 4.110000000000001,
+  "tech_tree": {
+    "ovens": true,
+    "bots": true,
+    "turbo_belts": false
+  },
+  "auto_bot_charge": 0.7999999999999644,
+  "completed": 3,
+  "ontime": 3,
+  "money": 36,
+  "waste": 2,
+  "last_hygiene_event": 22.60000000000005
 }

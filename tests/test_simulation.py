@@ -261,6 +261,48 @@ class TestFactorySimTick(unittest.TestCase):
 
         self.assertGreater(len(expanded.orders), len(baseline.orders))
 
+    def test_order_spawn_overflow_applies_missed_penalty(self):
+        sim = FactorySim(seed=9)
+        sim.order_channel = "delivery"
+        sim.money = 500
+        sim.reputation = 50.0
+
+        for _ in range(8):
+            sim._spawn_order()
+
+        self.assertEqual(len(sim.orders), 8)
+        money_before = sim.money
+        rep_before = sim.reputation
+
+        sim._spawn_order()
+
+        self.assertEqual(len(sim.orders), 8)
+        self.assertLess(sim.money, money_before)
+        self.assertLess(sim.reputation, rep_before)
+        self.assertEqual(sim.channel_stats["delivery"]["missed"], 1)
+        self.assertIn("Order overflow", sim.event_log[-1])
+
+    def test_second_location_prevents_overflow_penalty_at_base_capacity(self):
+        baseline = FactorySim(seed=15)
+        expanded = FactorySim(seed=15)
+        baseline.order_channel = "delivery"
+        expanded.order_channel = "delivery"
+        baseline.money = 500
+        expanded.money = 500
+        expanded.tech_tree["second_location"] = True
+
+        for _ in range(8):
+            baseline._spawn_order()
+            expanded._spawn_order()
+
+        baseline._spawn_order()
+        expanded._spawn_order()
+
+        self.assertEqual(len(baseline.orders), 8)
+        self.assertEqual(len(expanded.orders), 9)
+        self.assertEqual(baseline.channel_stats["delivery"]["missed"], 1)
+        self.assertEqual(expanded.channel_stats["delivery"]["missed"], 0)
+
     def test_research_unlocks_progression(self):
         sim = FactorySim(seed=1)
         sim.research_points = 12.0

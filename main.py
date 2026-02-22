@@ -360,6 +360,29 @@ class GameUI:
         self._draw_metric_card(self.grid_px_w + 14, card_y + 64, card_w, "Bottleneck", self.sim.bottleneck, (242, 186, 88))
         self._draw_metric_card(self.grid_px_w + 14, card_y + 128, card_w, "Hygiene", self.sim.hygiene, (101, 189, 255))
 
+        if self.active_section == "Info":
+            detail_y = card_y + 202
+            if self.active_subsection == "Economy":
+                net = self.sim.total_revenue - self.sim.total_spend
+                details = [
+                    f"Revenue: ${self.sim.total_revenue}",
+                    f"Spend: ${self.sim.total_spend}",
+                    f"Net: ${net}",
+                    f"Waste items: {self.sim.waste}",
+                ]
+            elif self.active_subsection == "Logs":
+                details = ["Recent events:"] + self.sim.event_log[-5:]
+            else:
+                details = [
+                    f"Completed: {self.sim.completed}",
+                    f"On-time: {self.sim.ontime}",
+                    f"SLA rate: {self.sim.ontime_rate:0.1f}%",
+                    f"Rep: {self.sim.reputation:0.1f}",
+                ]
+            for line in details:
+                self.screen.blit(self.small.render(line, True, self.palette["muted"]), (self.grid_px_w + 14, detail_y))
+                detail_y += 23
+
     def draw_tile(self, x: int, y: int, tile) -> None:
         rect = pygame.Rect(x * CELL + 1, y * CELL + 1, CELL - 2, CELL - 2)
         base = self._tile_base_color(tile.kind)
@@ -417,7 +440,8 @@ class GameUI:
 
         dtext = (
             f"Tool={self.selected.upper()} Rot={self.rotation} | Menu={self.active_section}/{self.active_subsection} "
-            f"| Orders={len(self.sim.orders)} Deliveries={len(self.sim.deliveries)} Cash=${self.sim.money}"
+            f"| Orders={len(self.sim.orders)} Deliveries={len(self.sim.deliveries)} Cash=${self.sim.money} "
+            f"Rev=${self.sim.total_revenue} Spend=${self.sim.total_spend}"
         )
         self.screen.blit(self.small.render(dtext, True, (255, 236, 160)), (10, self.grid_px_h + 150))
 

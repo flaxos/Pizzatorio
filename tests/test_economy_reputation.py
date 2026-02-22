@@ -161,6 +161,42 @@ class TestMachineBuildCosts(unittest.TestCase):
         sim2 = FactorySim.from_dict(d)
         self.assertEqual(sim.money, sim2.money)
 
+class TestEconomyTelemetry(unittest.TestCase):
+    """Revenue/spend telemetry supports Info > Economy UI."""
+
+    def test_building_updates_total_spend(self):
+        sim = FactorySim(seed=7)
+        sim.place_tile(0, 0, CONVEYOR, 0)
+        self.assertEqual(sim.total_spend, MACHINE_BUILD_COSTS[CONVEYOR])
+
+    def test_delivery_updates_total_revenue(self):
+        sim = FactorySim(seed=7)
+        sim.deliveries.append(
+            Delivery(mode="drone", remaining=0.05, elapsed=1.0, sla=10.0,
+                     duration=5.0, recipe_key="margherita", reward=12)
+        )
+        sim.tick(0.1)
+        self.assertEqual(sim.total_revenue, 12)
+
+    def test_event_log_captures_channel_switch_and_truncates(self):
+        sim = FactorySim(seed=7)
+        for idx in range(20):
+            sim._log_event(f"event-{idx}")
+        self.assertEqual(len(sim.event_log), 12)
+        self.assertEqual(sim.event_log[0], "event-8")
+        sim.set_order_channel("takeaway")
+        self.assertTrue(any("takeaway" in event for event in sim.event_log))
+
+    def test_economy_telemetry_survives_serialization(self):
+        sim = FactorySim(seed=7)
+        sim.total_revenue = 33
+        sim.total_spend = 21
+        sim.event_log = ["one", "two"]
+        loaded = FactorySim.from_dict(sim.to_dict())
+        self.assertEqual(loaded.total_revenue, 33)
+        self.assertEqual(loaded.total_spend, 21)
+        self.assertEqual(loaded.event_log[-2:], ["one", "two"])
+
 
 class TestReputation(unittest.TestCase):
     """Reputation rises for on-time deliveries and falls for late ones."""

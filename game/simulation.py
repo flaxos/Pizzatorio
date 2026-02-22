@@ -103,11 +103,15 @@ class FactorySim:
         self.ontime: int = 0
         self.money: int = STARTING_MONEY
         self.waste: int = 0
+        self.total_revenue: int = 0
+        self.total_spend: int = 0
+        self.event_log: List[str] = []
         self.last_hygiene_event: float = 0.0
         self.reputation: float = REPUTATION_STARTING
         self.order_channel: str = "delivery" if "delivery" in ORDER_CHANNELS else next(iter(ORDER_CHANNELS))
         self.commercial_strategy: str = next(iter(COMMERCIALS))
         self.research_focus: str = ""
+        self._log_event("Factory initialized")
 
         self.place_static_world()
 
@@ -148,6 +152,9 @@ class FactorySim:
             "ontime": self.ontime,
             "money": self.money,
             "waste": self.waste,
+            "total_revenue": self.total_revenue,
+            "total_spend": self.total_spend,
+            "event_log": self.event_log,
             "last_hygiene_event": self.last_hygiene_event,
             "reputation": self.reputation,
             "order_channel": self.order_channel,
@@ -216,15 +223,28 @@ class FactorySim:
         sim.ontime = int(data.get("ontime", 0))
         sim.money = int(data.get("money", STARTING_MONEY))
         sim.waste = int(data.get("waste", 0))
+        sim.total_revenue = int(data.get("total_revenue", 0))
+        sim.total_spend = int(data.get("total_spend", 0))
+        raw_events = data.get("event_log", [])
+        sim.event_log = [str(event) for event in raw_events if isinstance(event, str)][-12:]
         sim.last_hygiene_event = float(data.get("last_hygiene_event", 0.0))
         sim.reputation = float(data.get("reputation", REPUTATION_STARTING))
         sim.set_order_channel(str(data.get("order_channel", "delivery")))
         sim.set_commercial_strategy(str(data.get("commercial_strategy", sim.commercial_strategy)), charge=False)
-        sim.set_research_focus(str(data.get("research_focus", "")))
+        saved_focus = str(data.get("research_focus", ""))
+        if saved_focus and saved_focus in TECH_UNLOCK_COSTS and not sim.tech_tree.get(saved_focus, False):
+            if sim._research_prerequisites_met(saved_focus):
+                sim.research_focus = saved_focus
         return sim
+
+    def _log_event(self, message: str) -> None:
+        self.event_log.append(message)
+        self.event_log = self.event_log[-12:]
 
     def set_order_channel(self, channel: str) -> None:
         if channel in ORDER_CHANNELS:
+            if channel != self.order_channel:
+                self._log_event(f"Order channel switched to {channel}")
             self.order_channel = channel
 
     def set_commercial_strategy(self, strategy: str, *, charge: bool = True) -> bool:
@@ -234,21 +254,26 @@ class FactorySim:
             return True
         activation_cost = int(COMMERCIALS[strategy].get("activation_cost", 0))
         if charge and self.money < activation_cost:
+            self._log_event(f"Commercial {strategy} failed (need ${activation_cost})")
             return False
         if charge:
             self.money -= activation_cost
+            self.total_spend += activation_cost
+            self._log_event(f"Commercial {strategy} activated (-${activation_cost})")
         self.commercial_strategy = strategy
         return True
 
     def set_research_focus(self, tech: str) -> bool:
         if not tech:
             self.research_focus = ""
+            self._log_event("Research focus cleared")
             return True
         if tech not in TECH_UNLOCK_COSTS or self.tech_tree.get(tech, False):
             return False
         if not self._research_prerequisites_met(tech):
             return False
         self.research_focus = tech
+        self._log_event(f"Research focus set: {tech}")
         return True
 
     def available_research_targets(self) -> List[str]:
@@ -281,6 +306,7 @@ class FactorySim:
             focus_cost = TECH_UNLOCK_COSTS.get(self.research_focus, float("inf"))
             if self.research_points >= focus_cost:
                 self.tech_tree[self.research_focus] = True
+                self._log_event(f"Research unlocked: {self.research_focus}")
                 self.research_focus = ""
                 return True
         return False
@@ -378,6 +404,7 @@ class FactorySim:
             if self.money < cost:
                 return
             self.money -= cost
+            self.total_spend += cost
         self.grid[y][x] = Tile(kind=kind, rot=rot % 4)
 
     # ------------------------------------------------------------------
@@ -397,6 +424,7 @@ class FactorySim:
                 continue
             if self.research_points >= cost:
                 self.tech_tree[tech] = True
+                self._log_event(f"Research auto-unlocked: {tech}")
 
     def _next_pos(self, x: int, y: int, rot: int) -> Tuple[int, int]:
         dx, dy = DIRS[rot % 4]
@@ -450,6 +478,7 @@ class FactorySim:
             self.completed += 1
             self.ontime += 1
             self.money += order.reward
+            self.total_revenue += order.reward
             self.reputation = clamp(self.reputation + REPUTATION_GAIN_ONTIME, 0.0, 100.0)
             return
 
@@ -567,6 +596,7 @@ class FactorySim:
                         default_recipe = next(iter(RECIPES))
                         refund = int(RECIPES[default_recipe]["sell_price"] * PRECISION_COOKING_WASTE_REFUND)
                         self.money += refund
+                        self.total_revenue += refund
                 continue
 
             if ntile.kind == EMPTY:
@@ -626,9 +656,12 @@ class FactorySim:
                 if d.elapsed <= d.sla:
                     self.ontime += 1
                     self.money += d.reward
+                    self.total_revenue += d.reward
                     self.reputation = clamp(self.reputation + REPUTATION_GAIN_ONTIME, 0.0, 100.0)
                 else:
-                    self.money += int(d.reward * late_penalty)
+                    late_reward = int(d.reward * late_penalty)
+                    self.money += late_reward
+                    self.total_revenue += late_reward
                     self.reputation = clamp(self.reputation - REPUTATION_LOSS_LATE, 0.0, 100.0)
             else:
                 next_deliveries.append(d)

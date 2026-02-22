@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -98,8 +99,29 @@ class GameUI:
         self.running = True
         self.selected = CONVEYOR
         self.rotation = 0
-        self.hud_toggle_rects: List[Tuple[pygame.Rect, str]] = []
-        self.sidebar_toggle_rect: pygame.Rect | None = None
+        self.camera_x = 0.0
+        self.camera_y = 0.0
+        self.zoom = 1.0
+        self.min_zoom = 0.6
+        self.max_zoom = 2.2
+        self.pointer_down = False
+        self.pointer_dragging = False
+        self.pointer_mode = ""
+        self.pointer_down_pos = (0, 0)
+        self.pointer_down_time = 0
+        self.last_drag_cell: Tuple[int, int] | None = None
+        self.long_press_cell: Tuple[int, int] | None = None
+        self.long_press_ms = 420
+        self.drag_threshold_px = 14
+        self.active_touches: Dict[int, Tuple[int, int]] = {}
+        self.touch_order: List[int] = []
+        self.pinch_distance = 0.0
+        self.pinch_zoom_start = self.zoom
+        self.context_menu_cell: Tuple[int, int] | None = None
+        self.context_menu_center = (0, 0)
+        self.context_menu_radius = 64
+        self.context_menu_actions = ["rotate", "delete", "inspect"]
+        self.status_message = ""
 
         self.main_sections = ["Build", "Orders", "R&D", "Commercials", "Info"]
         self.section_defaults = {
@@ -242,6 +264,8 @@ class GameUI:
         self.window_h = viewport_h
         self.grid_px_w = grid_px_w
         self.grid_px_h = grid_px_h
+        self.panel_h = panel_h
+        self._clamp_camera()
 
         chip_size = max(17, int(self.touch_target_min_h * 0.38))
         small_size = max(15, int(chip_size * 0.86))
@@ -286,6 +310,27 @@ class GameUI:
             x += width + gap_x
         return rects
 
+    def _camera_world_size(self) -> Tuple[float, float]:
+        assert self.layout is not None
+        world_w = self.layout.grid_px_w * self.zoom
+        world_h = self.layout.grid_px_h * self.zoom
+        return world_w, world_h
+
+    def _clamp_camera(self) -> None:
+        assert self.layout is not None
+        world_w, world_h = self._camera_world_size()
+        max_x = max(0.0, world_w - self.layout.grid_px_w)
+        max_y = max(0.0, world_h - self.layout.grid_px_h)
+        self.camera_x = max(0.0, min(max_x, self.camera_x))
+        self.camera_y = max(0.0, min(max_y, self.camera_y))
+
+    def _grid_to_screen(self, gx: float, gy: float) -> Tuple[int, int]:
+        assert self.layout is not None
+        cell = self.layout.cell_size
+        sx = self.layout.grid_x + gx * cell * self.zoom - self.camera_x
+        sy = self.layout.grid_y + gy * cell * self.zoom - self.camera_y
+        return int(sx), int(sy)
+
     def _screen_to_grid(self, mx: int, my: int) -> Tuple[int, int] | None:
         assert self.layout is not None
         if not (
@@ -293,11 +338,178 @@ class GameUI:
             and self.layout.grid_y <= my < self.layout.grid_y + self.layout.grid_px_h
         ):
             return None
-        gx = int((mx - self.layout.grid_x) // self.layout.cell_size)
-        gy = int((my - self.layout.grid_y) // self.layout.cell_size)
+        local_x = (mx - self.layout.grid_x + self.camera_x) / self.zoom
+        local_y = (my - self.layout.grid_y + self.camera_y) / self.zoom
+        gx = int(local_x // self.layout.cell_size)
+        gy = int(local_y // self.layout.cell_size)
         if 0 <= gx < GRID_W and 0 <= gy < GRID_H:
             return gx, gy
         return None
+
+    def _pan_camera(self, dx: float, dy: float) -> None:
+        self.camera_x -= dx
+        self.camera_y -= dy
+        self._clamp_camera()
+
+    def _set_zoom_around(self, new_zoom: float, anchor_x: int, anchor_y: int) -> None:
+        assert self.layout is not None
+        old_zoom = self.zoom
+        self.zoom = max(self.min_zoom, min(self.max_zoom, new_zoom))
+        if abs(self.zoom - old_zoom) < 1e-6:
+            return
+        wx = (anchor_x - self.layout.grid_x + self.camera_x) / old_zoom
+        wy = (anchor_y - self.layout.grid_y + self.camera_y) / old_zoom
+        self.camera_x = wx * self.zoom - (anchor_x - self.layout.grid_x)
+        self.camera_y = wy * self.zoom - (anchor_y - self.layout.grid_y)
+        self._clamp_camera()
+
+    def _apply_tile_action(self, gx: int, gy: int) -> None:
+        self.sim.place_tile(gx, gy, self.selected, self.rotation)
+
+    def _apply_drag_line(self, start: Tuple[int, int], end: Tuple[int, int]) -> None:
+        x0, y0 = start
+        x1, y1 = end
+        dx = abs(x1 - x0)
+        dy = abs(y1 - y0)
+        sx = 1 if x0 < x1 else -1
+        sy = 1 if y0 < y1 else -1
+        err = dx - dy
+        while True:
+            self._apply_tile_action(x0, y0)
+            if x0 == x1 and y0 == y1:
+                break
+            e2 = 2 * err
+            if e2 > -dy:
+                err -= dy
+                x0 += sx
+            if e2 < dx:
+                err += dx
+                y0 += sy
+
+    def _start_context_menu(self, cell: Tuple[int, int], px: int, py: int) -> None:
+        self.context_menu_cell = cell
+        self.context_menu_center = (px, py)
+
+    def _handle_context_menu_click(self, mx: int, my: int) -> bool:
+        if self.context_menu_cell is None:
+            return False
+        cx, cy = self.context_menu_center
+        dx = mx - cx
+        dy = my - cy
+        dist = math.hypot(dx, dy)
+        if dist < 20:
+            self.context_menu_cell = None
+            return True
+        step = (2 * math.pi) / len(self.context_menu_actions)
+        angle = (math.atan2(dy, dx) + 2 * math.pi) % (2 * math.pi)
+        idx = int(((angle + step / 2) % (2 * math.pi)) // step)
+        action = self.context_menu_actions[idx]
+        gx, gy = self.context_menu_cell
+        if action == "rotate":
+            tile = self.sim.grid[gy][gx]
+            self.sim.place_tile(gx, gy, tile.kind, (tile.rot + 1) % 4)
+        elif action == "delete":
+            self.sim.place_tile(gx, gy, EMPTY, 0)
+        elif action == "inspect":
+            tile = self.sim.grid[gy][gx]
+            self.status_message = f"Inspect ({gx},{gy}) {tile.kind} rot={tile.rot}"
+        self.context_menu_cell = None
+        return True
+
+    def _touch_to_screen(self, ev) -> Tuple[int, int]:
+        assert self.layout is not None
+        return int(ev.x * self.layout.viewport_w), int(ev.y * self.layout.viewport_h)
+
+    def _build_tool_selected(self) -> bool:
+        return self.selected in {CONVEYOR, PROCESSOR, OVEN, BOT_DOCK, ASSEMBLY_TABLE, EMPTY}
+
+    def _debounced_drag(self, mx: int, my: int) -> None:
+        pos = self._screen_to_grid(mx, my)
+        if pos is None:
+            return
+        if self.last_drag_cell is None:
+            self._apply_tile_action(*pos)
+        else:
+            self._apply_drag_line(self.last_drag_cell, pos)
+        self.last_drag_cell = pos
+
+    def _handle_pointer_down(self, x: int, y: int) -> None:
+        assert self.layout is not None
+        self.pointer_down = True
+        self.pointer_dragging = False
+        self.pointer_down_pos = (x, y)
+        self.pointer_down_time = pygame.time.get_ticks()
+        self.pointer_mode = "build" if self._build_tool_selected() else ""
+        self.long_press_cell = self._screen_to_grid(x, y)
+        self.last_drag_cell = None
+
+    def _handle_pointer_move(self, x: int, y: int, rel_x: float, rel_y: float) -> None:
+        if not self.pointer_down:
+            return
+        dx = x - self.pointer_down_pos[0]
+        dy = y - self.pointer_down_pos[1]
+        if not self.pointer_dragging and math.hypot(dx, dy) > self.drag_threshold_px:
+            self.pointer_dragging = True
+            if self.pointer_mode == "build" and self.selected == CONVEYOR:
+                self.last_drag_cell = self._screen_to_grid(*self.pointer_down_pos)
+        if self.pointer_dragging:
+            if self.pointer_mode == "build" and self.selected == CONVEYOR:
+                self._debounced_drag(x, y)
+            else:
+                self._pan_camera(rel_x, rel_y)
+
+    def _handle_pointer_up(self, x: int, y: int) -> None:
+        elapsed = pygame.time.get_ticks() - self.pointer_down_time
+        if self.pointer_down and not self.pointer_dragging and elapsed >= self.long_press_ms and self.long_press_cell is not None:
+            self._start_context_menu(self.long_press_cell, x, y)
+        elif self.pointer_down and not self.pointer_dragging:
+            if self.context_menu_cell is not None and self._handle_context_menu_click(x, y):
+                pass
+            else:
+                if y >= self.layout.panel_y and self._handle_click(x, y):
+                    pass
+                else:
+                    pos = self._screen_to_grid(x, y)
+                    if pos is not None and elapsed < self.long_press_ms:
+                        self._apply_tile_action(*pos)
+        self.pointer_down = False
+        self.pointer_dragging = False
+        self.pointer_mode = ""
+        self.last_drag_cell = None
+
+    def _update_touch_tracking(self, ev, down: bool) -> None:
+        tx, ty = self._touch_to_screen(ev)
+        finger_id = int(getattr(ev, "finger_id", 0))
+        if down:
+            self.active_touches[finger_id] = (tx, ty)
+            if finger_id not in self.touch_order:
+                self.touch_order.append(finger_id)
+        else:
+            self.active_touches.pop(finger_id, None)
+            self.touch_order = [fid for fid in self.touch_order if fid != finger_id]
+
+    def _handle_touch_motion(self, ev) -> None:
+        tx, ty = self._touch_to_screen(ev)
+        fid = int(getattr(ev, "finger_id", 0))
+        self.active_touches[fid] = (tx, ty)
+        if len(self.touch_order) >= 2:
+            f1, f2 = self.touch_order[0], self.touch_order[1]
+            p1 = self.active_touches.get(f1)
+            p2 = self.active_touches.get(f2)
+            if p1 and p2:
+                mid_x = int((p1[0] + p2[0]) / 2)
+                mid_y = int((p1[1] + p2[1]) / 2)
+                dist = math.hypot(p1[0] - p2[0], p1[1] - p2[1])
+                if self.pinch_distance == 0.0:
+                    self.pinch_distance = dist
+                    self.pinch_zoom_start = self.zoom
+                else:
+                    ratio = dist / max(1.0, self.pinch_distance)
+                    self._set_zoom_around(self.pinch_zoom_start * ratio, mid_x, mid_y)
+                rel_x = ev.dx * self.layout.viewport_w
+                rel_y = ev.dy * self.layout.viewport_h
+                self._pan_camera(rel_x, rel_y)
+                self.pointer_down = False
 
     def _set_section(self, section: str) -> None:
         if section not in self.main_sections:
@@ -570,14 +782,41 @@ class GameUI:
                     self._reflow_layout()
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
                 x, y = pygame.mouse.get_pos()
-                assert self.layout is not None
-                in_sheet = self.layout.bottom_sheet_h > 0 and y >= self.layout.bottom_sheet_y
-                if (in_sheet or self.layout.top_strip_h > 0 or self.sidebar_toggle_rect is not None) and self._handle_click(x, y):
+                if self.context_menu_cell is not None and self._handle_context_menu_click(x, y):
                     continue
-                pos = self._screen_to_grid(x, y)
-                if pos is not None:
-                    gx, gy = pos
-                    self.sim.place_tile(gx, gy, self.selected, self.rotation)
+                self._handle_pointer_down(x, y)
+            if ev.type == pygame.MOUSEMOTION:
+                x, y = pygame.mouse.get_pos()
+                self._handle_pointer_move(x, y, ev.rel[0], ev.rel[1])
+            if ev.type == pygame.MOUSEBUTTONUP and ev.button == 1:
+                x, y = pygame.mouse.get_pos()
+                self._handle_pointer_up(x, y)
+            if ev.type == pygame.MOUSEWHEEL:
+                x, y = pygame.mouse.get_pos()
+                zoom_step = 1.0 + (ev.y * 0.08)
+                self._set_zoom_around(self.zoom * zoom_step, x, y)
+            if ev.type == pygame.FINGERDOWN:
+                self._update_touch_tracking(ev, True)
+                tx, ty = self._touch_to_screen(ev)
+                if len(self.touch_order) == 1:
+                    self._handle_pointer_down(tx, ty)
+                elif len(self.touch_order) >= 2:
+                    self.pointer_down = False
+            if ev.type == pygame.FINGERMOTION:
+                if len(self.touch_order) >= 2:
+                    self._handle_touch_motion(ev)
+                else:
+                    tx, ty = self._touch_to_screen(ev)
+                    rel_x = ev.dx * self.layout.viewport_w
+                    rel_y = ev.dy * self.layout.viewport_h
+                    self._handle_pointer_move(tx, ty, rel_x, rel_y)
+            if ev.type == pygame.FINGERUP:
+                tx, ty = self._touch_to_screen(ev)
+                if len(self.touch_order) < 2:
+                    self._handle_pointer_up(tx, ty)
+                self._update_touch_tracking(ev, False)
+                if len(self.touch_order) < 2:
+                    self.pinch_distance = 0.0
 
     def _tile_base_color(self, kind: str) -> Tuple[int, int, int]:
         colors = {
@@ -701,13 +940,19 @@ class GameUI:
 
     def draw_tile(self, x: int, y: int, tile) -> None:
         assert self.layout is not None
-        cell = self.layout.cell_size
+        cell = int(self.layout.cell_size * self.zoom)
+        if cell <= 2:
+            return
+        px, py = self._grid_to_screen(x, y)
         rect = pygame.Rect(
-            self.layout.grid_x + x * cell + 1,
-            self.layout.grid_y + y * cell + 1,
+            px + 1,
+            py + 1,
             cell - 2,
             cell - 2,
         )
+        play_rect = pygame.Rect(self.layout.grid_x, self.layout.grid_y, self.layout.grid_px_w, self.layout.grid_px_h)
+        if not rect.colliderect(play_rect):
+            return
         base = self._tile_base_color(tile.kind)
         lift = tuple(min(255, c + 25) for c in base)
         pygame.draw.rect(self.screen, base, rect, border_radius=10)
@@ -719,7 +964,7 @@ class GameUI:
 
     def draw(self) -> None:
         assert self.layout is not None
-        cell = self.layout.cell_size
+        cell = int(self.layout.cell_size * self.zoom)
         self.screen.fill(self.palette["bg"])
         self.hud_toggle_rects = []
         self.sidebar_toggle_rect = None
@@ -728,7 +973,7 @@ class GameUI:
                 self.draw_tile(x, y, self.sim.grid[y][x])
 
         for x in range(GRID_W + 1):
-            xpos = self.layout.grid_x + x * cell
+            xpos, _ = self._grid_to_screen(x, 0)
             pygame.draw.line(
                 self.screen,
                 self.palette["grid_line"],
@@ -737,7 +982,7 @@ class GameUI:
                 1,
             )
         for y in range(GRID_H + 1):
-            ypos = self.layout.grid_y + y * cell
+            _, ypos = self._grid_to_screen(0, y)
             pygame.draw.line(
                 self.screen,
                 self.palette["grid_line"],
@@ -747,8 +992,9 @@ class GameUI:
             )
 
         for item in self.sim.items:
-            px = self.layout.grid_x + item.x * cell + cell // 2
-            py = self.layout.grid_y + item.y * cell + cell // 2
+            px, py = self._grid_to_screen(item.x, item.y)
+            px += cell // 2
+            py += cell // 2
             colors = {
                 "raw": (219, 223, 235),
                 "processed": (255, 214, 126),
@@ -758,66 +1004,53 @@ class GameUI:
             pygame.draw.circle(self.screen, (30, 34, 45), (int(px), int(py)), max(5, cell // 4))
             pygame.draw.circle(self.screen, color, (int(px), int(py)), max(3, cell // 6))
 
-        if self.layout.top_strip_h > 0:
-            top = pygame.Rect(0, self.layout.safe_top, self.layout.play_w, self.layout.top_strip_h)
-            pygame.draw.rect(self.screen, (18, 23, 35), top)
-            metrics = [
-                f"Cash ${self.sim.money}",
-                f"Orders Due {len(self.sim.orders)}",
-                f"Throughput {self.sim.ontime_rate:0.1f}%",
-            ]
-            x = 10
-            for metric in metrics:
-                label = self.small.render(metric, True, self.palette["text"])
-                self.screen.blit(label, (x, top.y + 12))
-                x += label.get_width() + 24
-            toggle_labels = [
-                (f"HUD {self.bottom_sheet_state.title()}", "sheet", True),
-                (f"KPIs {'On' if self.show_top_kpis else 'Off'}", "kpis", self.show_top_kpis),
-            ]
-            if not self.landscape:
-                toggle_labels.append((f"Dock {'On' if self.show_floating_dock else 'Off'}", "dock", self.show_floating_dock))
-            tx = self.layout.play_w - 10
-            for label, action, active in reversed(toggle_labels):
-                tw, th = self.small.size(label)
-                rect = pygame.Rect(tx - tw - 24, top.y + 8, tw + 16, top.height - 16)
-                tx = rect.x - 8
-                self._draw_chip(rect, label, active)
-                self.hud_toggle_rects.append((rect, action))
+        panel = pygame.Rect(0, self.layout.panel_y, self.layout.play_w, self.panel_h)
+        pygame.draw.rect(self.screen, self.palette["panel"], panel)
+        pygame.draw.line(self.screen, self.palette["panel_border"], panel.topleft, panel.topright, 2)
 
-        if self.layout.bottom_sheet_h > 0:
-            panel = pygame.Rect(0, self.layout.bottom_sheet_y, self.layout.play_w, self.layout.bottom_sheet_h)
-            pygame.draw.rect(self.screen, self.palette["panel"], panel)
-            pygame.draw.line(self.screen, self.palette["panel_border"], panel.topleft, panel.topright, 2)
+        ui_rects = self._ui_rects()
+        for rect, section in ui_rects["sections"]:
+            self._draw_chip(rect, section, section == self.active_section)
+        for rect, subsection in ui_rects["subsections"]:
+            self._draw_chip(rect, subsection, subsection == self.active_subsection)
 
-            ui_rects = self._ui_rects()
-            for rect, section in ui_rects["sections"]:
-                self._draw_chip(rect, section, section == self.active_section)
-            for rect, subsection in ui_rects["subsections"]:
-                self._draw_chip(rect, subsection, subsection == self.active_subsection)
+        for rect, label in self._toolbar_rects():
+            active = (
+                ("Conveyor" in label and self.selected == CONVEYOR)
+                or ("Processor" in label and self.selected == PROCESSOR)
+                or ("Oven" in label and self.selected == OVEN)
+                or ("Bot Dock" in label and self.selected == BOT_DOCK)
+                or ("Assembly" in label and self.selected == ASSEMBLY_TABLE)
+                or ("Delete" in label and self.selected == EMPTY)
+            )
+            self._draw_chip(rect, label, active)
 
-            for rect, label in self._toolbar_rects():
-                active = (
-                    ("Conveyor" in label and self.selected == CONVEYOR)
-                    or ("Processor" in label and self.selected == PROCESSOR)
-                    or ("Oven" in label and self.selected == OVEN)
-                    or ("Bot Dock" in label and self.selected == BOT_DOCK)
-                    or ("Assembly" in label and self.selected == ASSEMBLY_TABLE)
-                    or ("Delete" in label and self.selected == EMPTY)
-                )
-                self._draw_chip(rect, label, active)
+        toolbar_rects = self._toolbar_rects()
+        text_y = self.layout.panel_y + self.panel_h - (32 if self.touch_mode else 26)
+        if toolbar_rects:
+            text_y = max(text_y, max(rect.bottom for rect, _ in toolbar_rects) + 8)
+            text_y = min(text_y, self.layout.panel_y + self.panel_h - (32 if self.touch_mode else 26))
 
-        if not self.landscape and self.show_floating_dock:
-            dock_actions = ["1 Conveyor", "2 Processor", "5 Delete", "Rot +", "S Save"]
-            dock_y = self.layout.play_bottom - 58
-            dock_x = max(8, self.layout.play_w - 110)
-            for idx, label in enumerate(dock_actions):
-                rect = pygame.Rect(dock_x, dock_y - idx * 50, 100, 42)
-                self._draw_chip(rect, self._toolbar_button_label(label), False)
-                self.hud_toggle_rects.append((rect, f"tool:{label}"))
+        dtext = (
+            f"Tool={self.selected.upper()} Rot={self.rotation} | Menu={self.active_section}/{self.active_subsection} "
+            f"| Orders={len(self.sim.orders)} Deliveries={len(self.sim.deliveries)} Cash=${self.sim.money} "
+            f"Rev=${self.sim.total_revenue} Spend=${self.sim.total_spend}"
+        )
+        self.screen.blit(self.small.render(dtext, True, (255, 236, 160)), (10, text_y))
+        if self.status_message:
+            self.screen.blit(self.small.render(self.status_message, True, (180, 220, 255)), (10, text_y - 24))
 
-        dtext = f"Tool={self.selected.upper()} Rot={self.rotation}"
-        self.screen.blit(self.small.render(dtext, True, (255, 236, 160)), (10, self.layout.play_bottom - 26))
+        if self.context_menu_cell is not None:
+            cx, cy = self.context_menu_center
+            pygame.draw.circle(self.screen, (24, 34, 48), (cx, cy), self.context_menu_radius)
+            pygame.draw.circle(self.screen, (106, 130, 170), (cx, cy), self.context_menu_radius, width=2)
+            step = (2 * math.pi) / len(self.context_menu_actions)
+            for idx, label in enumerate(self.context_menu_actions):
+                ang = idx * step
+                lx = int(cx + math.cos(ang) * (self.context_menu_radius - 22))
+                ly = int(cy + math.sin(ang) * (self.context_menu_radius - 22))
+                txt = self.small.render(label.title(), True, self.palette["text"])
+                self.screen.blit(txt, txt.get_rect(center=(lx, ly)))
 
         self._draw_sidebar()
         pygame.display.flip()

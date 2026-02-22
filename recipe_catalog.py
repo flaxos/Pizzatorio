@@ -10,6 +10,7 @@ from typing import Any, Dict, Iterable, List
 RECIPES_FILE = Path("data/recipes.json")
 ITEM_ID_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 MAX_TOPPINGS = 5
+MAX_POST_OVEN = 2
 
 
 @dataclass(frozen=True)
@@ -168,6 +169,8 @@ def _parse_recipe_entry(key: str, entry: Dict[str, Any]) -> RecipeDefinition | N
     if parsed_toppings is None or parsed_post_oven is None:
         return None
     if not parsed_toppings or len(parsed_toppings) > MAX_TOPPINGS:
+        return None
+    if len(parsed_post_oven) > MAX_POST_OVEN:
         return None
     if not all(_is_valid_item_id(item) for item in (*parsed_toppings, *parsed_post_oven)):
         return None

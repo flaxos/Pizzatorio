@@ -389,6 +389,17 @@ class RecipeCatalogTests(unittest.TestCase):
                             "toppings": ["fresh_basil"],
                             "post_oven": ["rocket_leaves", "rocket_leaves"],
                         },
+                        "too_many_post_oven": {
+                            "display_name": "Too Many Garnishes",
+                            "sell_price": 10,
+                            "sla": 5,
+                            "unlock_tier": 0,
+                            "cook_time": 8,
+                            "cook_temp": "medium",
+                            "difficulty": 1,
+                            "toppings": ["fresh_basil"],
+                            "post_oven": ["rocket_leaves", "fresh_basil", "minced_garlic"],
+                        },
                     }
                 )
             )
@@ -400,6 +411,7 @@ class RecipeCatalogTests(unittest.TestCase):
         self.assertNotIn("too_many_toppings", catalog)
         self.assertNotIn("shared_topping_post_oven", catalog)
         self.assertNotIn("duplicate_post_oven", catalog)
+        self.assertNotIn("too_many_post_oven", catalog)
 
     def test_catalog_order_is_deterministic_by_tier_then_key(self):
         with tempfile.TemporaryDirectory() as tmpdir:

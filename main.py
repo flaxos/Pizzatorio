@@ -105,6 +105,12 @@ class GameUI:
         self.show_floating_dock = True
         self._load_ui_settings()
 
+        self.camera_x = 0.0
+        self.camera_y = 0.0
+        self.zoom = 1.0
+        self.min_zoom = 0.6
+        self.max_zoom = 2.2
+
         self._reflow_layout(*self.screen.get_size())
         pygame.display.set_caption("Pizzatorio Factory")
         self.clock = pygame.time.Clock()
@@ -117,11 +123,6 @@ class GameUI:
         self.running = True
         self.selected = CONVEYOR
         self.rotation = 0
-        self.camera_x = 0.0
-        self.camera_y = 0.0
-        self.zoom = 1.0
-        self.min_zoom = 0.6
-        self.max_zoom = 2.2
         self.pointer_down = False
         self.pointer_dragging = False
         self.pointer_mode = ""

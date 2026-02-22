@@ -1,0 +1,20 @@
+{
+  "campaigns": {
+    "display_name": "Campaigns",
+    "activation_cost": 120,
+    "demand_multiplier": 1.25,
+    "reward_multiplier": 1.0
+  },
+  "promos": {
+    "display_name": "Promos",
+    "activation_cost": 90,
+    "demand_multiplier": 1.0,
+    "reward_multiplier": 1.1
+  },
+  "franchise": {
+    "display_name": "Franchise",
+    "activation_cost": 180,
+    "demand_multiplier": 1.15,
+    "reward_multiplier": 1.08
+  }
+}

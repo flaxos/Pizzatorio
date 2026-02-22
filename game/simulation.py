@@ -533,6 +533,21 @@ class FactorySim:
             )
         )
 
+    def _resolve_order_for_item(self, item: Item) -> Order | None:
+        if not self.orders:
+            return None
+
+        if item.recipe_key:
+            for idx, order in enumerate(self.orders):
+                if order.recipe_key == item.recipe_key:
+                    return self.orders.pop(idx)
+            return None
+
+        ordered_recipe_keys = {order.recipe_key for order in self.orders}
+        if len(ordered_recipe_keys) == 1:
+            return self.orders.pop(0)
+        return None
+
     # ------------------------------------------------------------------
     # Main tick
     # ------------------------------------------------------------------
@@ -610,18 +625,15 @@ class FactorySim:
             ntile = self.grid[ny][nx]
             if ntile.kind == SINK and item.stage == "baked":
                 if self.orders:
-                    if item.recipe_key:
-                        order_idx = next(
-                            (i for i, o in enumerate(self.orders) if o.recipe_key == item.recipe_key),
-                            0,
-                        )
+                    order = self._resolve_order_for_item(item)
+                    if order is not None:
+                        self._enqueue_delivery(order)
+                        if item.delivery_boost > 0 and self.deliveries:
+                            self.deliveries[-1].remaining = max(1.5, self.deliveries[-1].remaining - item.delivery_boost)
+                            self.deliveries[-1].duration = self.deliveries[-1].remaining
                     else:
-                        order_idx = 0
-                    order = self.orders.pop(order_idx)
-                    self._enqueue_delivery(order)
-                    if item.delivery_boost > 0 and self.deliveries:
-                        self.deliveries[-1].remaining = max(1.5, self.deliveries[-1].remaining - item.delivery_boost)
-                        self.deliveries[-1].duration = self.deliveries[-1].remaining
+                        self.waste += 1
+                        self._log_event("Order rejected: baked item recipe mismatch")
                 else:
                     self.waste += 1
                     if self.tech_tree.get("precision_cooking", False) and RECIPES:

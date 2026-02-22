@@ -194,6 +194,24 @@ class TestFactorySimTick(unittest.TestCase):
         self.assertTrue(sim.set_order_channel("eat_in"))
         self.assertEqual(sim.order_channel, "eat_in")
 
+    def test_tick_auto_switches_locked_order_channel_before_spawning(self):
+        sim = FactorySim(seed=1)
+        sim.reputation = 30.0
+        self.assertTrue(sim.set_order_channel("eat_in"))
+        sim.reputation = 0.0
+        sim.order_spawn_timer = ORDER_SPAWN_INTERVAL
+        sim.tick(0.01)
+        self.assertEqual(sim.order_channel, "delivery")
+        self.assertIn("auto-switched", sim.event_log[-1])
+
+    def test_tick_keeps_active_channel_when_still_unlocked(self):
+        sim = FactorySim(seed=1)
+        sim.reputation = 30.0
+        self.assertTrue(sim.set_order_channel("eat_in"))
+        sim.order_spawn_timer = ORDER_SPAWN_INTERVAL
+        sim.tick(0.01)
+        self.assertEqual(sim.order_channel, "eat_in")
+
     def test_research_unlocks_progression(self):
         sim = FactorySim(seed=1)
         sim.research_points = 12.0

@@ -503,6 +503,16 @@ class FactorySim:
             )
         )
 
+    def _ensure_active_order_channel_is_unlocked(self) -> None:
+        if self.order_channel_is_unlocked(self.order_channel):
+            return
+        fallback_channels = self.unlocked_order_channels()
+        if not fallback_channels:
+            return
+        previous = self.order_channel
+        self.order_channel = fallback_channels[0]
+        self._log_event(f"Order channel auto-switched to {self.order_channel} (was {previous})")
+
     def _spawn_item(self) -> None:
         """Spawn a new ingredient item at the source tile with a weighted random type."""
         all_types = list(INGREDIENT_SPAWN_WEIGHTS.keys())
@@ -576,6 +586,7 @@ class FactorySim:
 
         if self.order_spawn_timer >= effective_order_spawn_interval:
             self.order_spawn_timer = 0.0
+            self._ensure_active_order_channel_is_unlocked()
             self._spawn_order()
 
         # Hygiene fluctuation

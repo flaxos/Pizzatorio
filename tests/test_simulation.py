@@ -236,6 +236,30 @@ class TestFactorySimTick(unittest.TestCase):
 
         self.assertLessEqual(len(eat_in.orders), len(delivery.orders))
 
+    def test_second_location_increases_order_intake(self):
+        baseline = FactorySim(seed=7)
+        expanded = FactorySim(seed=7)
+        expanded.tech_tree["second_location"] = True
+
+        for _ in range(220):
+            baseline.tick(0.1)
+            expanded.tick(0.1)
+
+        self.assertGreaterEqual(len(expanded.orders), len(baseline.orders))
+
+    def test_second_location_allows_higher_active_order_cap(self):
+        baseline = FactorySim(seed=5)
+        expanded = FactorySim(seed=5)
+        baseline.order_channel = "delivery"
+        expanded.order_channel = "delivery"
+        expanded.tech_tree["second_location"] = True
+
+        for _ in range(20):
+            baseline._spawn_order()
+            expanded._spawn_order()
+
+        self.assertGreater(len(expanded.orders), len(baseline.orders))
+
     def test_research_unlocks_progression(self):
         sim = FactorySim(seed=1)
         sim.research_points = 12.0

@@ -98,6 +98,11 @@ class GameUI:
                 strategy = subsection.lower()
                 if self.sim.set_commercial_strategy(strategy):
                     self.commercial_strategy = self.sim.commercial_strategy
+            elif self.active_section == "R&D":
+                if subsection == "Queued":
+                    self.sim.cycle_research_focus()
+                elif subsection == "Upgrades":
+                    self.sim.try_unlock_research_focus()
 
     def _ui_rects(self) -> Dict[str, List[Tuple[pygame.Rect, str]]]:
         top_y = self.grid_px_h + 8
@@ -269,6 +274,7 @@ class GameUI:
             f"Sub-menu: {self.active_subsection}",
             f"Order channel: {self.order_channel}",
             f"Commercial: {self.commercial_strategy}",
+            f"R&D focus: {self.sim.research_focus or 'auto'}",
             f"Selected tool: {self.selected}",
             f"Rotation: {self.rotation}",
             f"Orders pending: {len(self.sim.orders)}",

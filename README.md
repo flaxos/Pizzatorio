@@ -59,3 +59,34 @@ Install pygame in Pydroid pip before running graphical mode:
 pip install pygame
 ```
 If pygame is unavailable, headless mode still works.
+
+## CI quality gate (local preflight)
+Before opening a PR, run the same checks used in CI:
+
+```bash
+python -m pytest tests/ -v --tb=short
+python main.py --headless --ticks 200 --dt 0.1
+python main.py --headless --ticks 1000 --dt 0.05
+python -m pytest tests/test_recipe_catalog.py -v --tb=short
+python - <<'EOF'
+import sys
+from pathlib import Path
+sys.path.insert(0, ".")
+from recipe_catalog import load_recipe_catalog
+
+catalog = load_recipe_catalog(Path("data/recipes.json"))
+assert len(catalog) >= 20, f"Expected >=20 recipes, got {len(catalog)}"
+
+tiers = {r["unlock_tier"] for r in catalog.values()}
+assert 0 in tiers, "Must have tier-0 (starter) recipes"
+assert max(tiers) >= 2, "Must span at least 3 unlock tiers"
+
+for key, recipe in catalog.items():
+    assert recipe["sell_price"] >= 1, f"{key}: sell_price must be >= 1"
+    assert recipe["sla"] > 0, f"{key}: sla must be positive"
+    assert recipe["demand_weight"] > 0, f"{key}: demand_weight must be positive"
+    assert len(recipe["toppings"]) >= 1, f"{key}: must have at least 1 topping"
+
+print(f"OK: {len(catalog)} recipes validated across tiers {sorted(tiers)}")
+EOF
+```

@@ -107,9 +107,10 @@ class GameUI:
 
         self.camera_x = 0.0
         self.camera_y = 0.0
-        self.zoom = 1.25 if self.touch_mode else 1.0
-        self.min_zoom = 0.8 if self.touch_mode else 0.6
-        self.max_zoom = 2.6 if self.touch_mode else 2.2
+        # Keep gameplay tiles more legible on touch devices while preserving pinch-pan control.
+        self.zoom = 1.55 if self.touch_mode else 1.0
+        self.min_zoom = 1.0 if self.touch_mode else 0.6
+        self.max_zoom = 2.9 if self.touch_mode else 2.2
 
         self.ui_scale = 1.35 if self.touch_mode else 1.0
         self.tile_icon_scale = 1.28 if self.touch_mode else 1.0

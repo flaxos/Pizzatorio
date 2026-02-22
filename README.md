@@ -17,7 +17,7 @@ A lightweight factory/automation prototype designed to run in **Pydroid on Andro
   - `R` / `Q` / `E` rotate selected part
   - Left click to place/delete
 - Progression systems:
-  - Tech tree unlocks (`ovens`, `bots`, `turbo belts`) driven by production XP.
+  - Tech tree unlocks now follow prerequisite chains across branches (e.g., `turbo_oven` needs `ovens`, `franchise_system` needs expansion + logistics unlocks), all data-driven from `data/research.json`.
   - Expansion tiers increase as your factory runs and fulfills demand.
 - UI scaffolding includes menu + submenu chips (`Build`, `Orders`, `R&D`, `Commercials`, `Info`) and quick order-channel context (`Delivery`, `Takeaway`, `Eat-in`) for the upcoming overhaul.
 - Commercial submenu actions are now wired to lightweight campaign strategies (`Campaigns`, `Promos`, `Franchise`) that charge cash once on activation and modify order demand/reward behavior.

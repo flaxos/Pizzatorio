@@ -397,12 +397,16 @@ class TestExpansionTechUnlocks(unittest.TestCase):
 
     def test_second_location_auto_unlocks_at_threshold(self):
         sim = self._sim()
+        sim.tech_tree["priority_dispatch"] = True
+        sim.tech_tree["precision_cooking"] = True
         sim.research_points = TECH_UNLOCK_COSTS["second_location"]
         sim.tick(0.01)
         self.assertTrue(sim.tech_tree["second_location"])
 
     def test_franchise_system_auto_unlocks_at_threshold(self):
         sim = self._sim()
+        sim.tech_tree["second_location"] = True
+        sim.tech_tree["double_spawn"] = True
         sim.research_points = TECH_UNLOCK_COSTS["franchise_system"]
         sim.tick(0.01)
         self.assertTrue(sim.tech_tree["franchise_system"])

@@ -76,8 +76,13 @@ class GameUI:
         self._reflow_layout(*self.screen.get_size())
         pygame.display.set_caption("Pizzatorio Factory")
         self.clock = pygame.time.Clock()
+        self.touch_mode = self.display_mode == "mobile_fullscreen"
+        self.touch_target_min_h = 56 if self.touch_mode else 34
+        self.touch_horizontal_padding = 26 if self.touch_mode else 14
+        self.hit_slop = 12 if self.touch_mode else 5
         self.font = pygame.font.SysFont("arial", 22)
         self.small = pygame.font.SysFont("arial", 17)
+        self.chip_font = self.small
         self.running = True
         self.selected = CONVEYOR
         self.rotation = 0
@@ -123,7 +128,8 @@ class GameUI:
             "muted": (161, 177, 205),
             "accent": (97, 167, 255),
             "chip": (30, 38, 55),
-            "chip_active": (59, 93, 156),
+            "chip_active": (88, 140, 236),
+            "chip_active_border": (180, 215, 255),
         }
 
     def _select_display_mode(self) -> str:
@@ -144,8 +150,12 @@ class GameUI:
         safe_top = int(viewport_h * 0.02) if mobile else 0
         safe_bottom = int(viewport_h * 0.03) if mobile else 0
         hud_h = max(120, int(viewport_h * 0.12))
-        toolbar_h = max(58, int(viewport_h * 0.08))
+        toolbar_h = max(66 if self.touch_mode else 58, int(viewport_h * (0.09 if self.touch_mode else 0.08)))
         panel_h = hud_h + toolbar_h
+        if self.touch_mode:
+            panel_h = max(panel_h, int(viewport_h * 0.42))
+        else:
+            panel_h = max(panel_h, 170)
         side_panel_w = max(300, int(viewport_w * 0.25)) if landscape else 0
 
         play_w = max(320, viewport_w - side_panel_w)
@@ -184,6 +194,49 @@ class GameUI:
         self.grid_px_w = grid_px_w
         self.grid_px_h = grid_px_h
         self.panel_h = panel_h
+
+        chip_size = max(17, int(self.touch_target_min_h * 0.38))
+        small_size = max(15, int(chip_size * 0.86))
+        body_size = max(20, int(chip_size * 1.15))
+        self.chip_font = pygame.font.SysFont("arial", chip_size)
+        self.small = pygame.font.SysFont("arial", small_size)
+        self.font = pygame.font.SysFont("arial", body_size)
+
+    def _toolbar_button_label(self, label: str) -> str:
+        if not self.touch_mode:
+            return label
+        if " " not in label:
+            return label
+        prefix, remainder = label.split(" ", 1)
+        return remainder if len(prefix) == 1 and prefix.isalnum() else label
+
+    def _layout_chip_rows(
+        self,
+        labels: List[str],
+        start_y: int,
+        min_width: int,
+        min_height: int,
+        gap_x: int,
+        gap_y: int,
+        label_fn=None,
+    ) -> List[Tuple[pygame.Rect, str]]:
+        assert self.layout is not None
+        x = 10
+        y = start_y
+        max_x = self.layout.play_w - 10
+        rects: List[Tuple[pygame.Rect, str]] = []
+        render_label = label_fn or (lambda text: text)
+        for value in labels:
+            shown = render_label(value)
+            text_w, text_h = self.chip_font.size(shown)
+            width = max(min_width, text_w + self.touch_horizontal_padding * 2)
+            height = max(min_height, text_h + 14)
+            if x + width > max_x and x > 10:
+                x = 10
+                y += height + gap_y
+            rects.append((pygame.Rect(x, y, width, height), value))
+            x += width + gap_x
+        return rects
 
     def _screen_to_grid(self, mx: int, my: int) -> Tuple[int, int] | None:
         assert self.layout is not None
@@ -279,34 +332,44 @@ class GameUI:
     def _ui_rects(self) -> Dict[str, List[Tuple[pygame.Rect, str]]]:
         assert self.layout is not None
         top_y = self.layout.panel_y + 8
-        x = 10
-        sections: List[Tuple[pygame.Rect, str]] = []
-        for section in self.main_sections:
-            rect = pygame.Rect(x, top_y, 112, 30)
-            sections.append((rect, section))
-            x += 118
+        sections = self._layout_chip_rows(
+            self.main_sections,
+            start_y=top_y,
+            min_width=120 if self.touch_mode else 104,
+            min_height=self.touch_target_min_h,
+            gap_x=10,
+            gap_y=8,
+        )
 
-        sub_y = top_y + 38
-        x = 10
-        subs: List[Tuple[pygame.Rect, str]] = []
-        for subsection in self._subsections_for(self.active_section):
-            rect = pygame.Rect(x, sub_y, 146, 28)
-            subs.append((rect, subsection))
-            x += 152
+        sub_start = max(rect.bottom for rect, _ in sections) + 8 if sections else top_y
+        subs = self._layout_chip_rows(
+            self._subsections_for(self.active_section),
+            start_y=sub_start,
+            min_width=150 if self.touch_mode else 132,
+            min_height=self.touch_target_min_h,
+            gap_x=10,
+            gap_y=8,
+        )
 
         return {"sections": sections, "subsections": subs}
 
     def _toolbar_rects(self) -> List[Tuple[pygame.Rect, str]]:
-        assert self.layout is not None
-        y = self.layout.panel_y + 78
-        rects = []
-        x = 10
+        ui_rects = self._ui_rects()
+        last_sub_bottom = max(rect.bottom for rect, _ in ui_rects["subsections"]) if ui_rects["subsections"] else self.layout.panel_y + 8
+        y = last_sub_bottom + 10
         actions = self._active_toolbar_actions()
-        for label in actions:
-            w = max(86, len(label) * 8 + 20)
-            rects.append((pygame.Rect(x, y, w, 30), label))
-            x += w + 8
-        return rects
+        return self._layout_chip_rows(
+            actions,
+            start_y=y,
+            min_width=156 if self.touch_mode else 94,
+            min_height=self.touch_target_min_h,
+            gap_x=10,
+            gap_y=8,
+            label_fn=self._toolbar_button_label,
+        )
+
+    def _expanded_hit_rect(self, rect: pygame.Rect) -> pygame.Rect:
+        return rect.inflate(self.hit_slop * 2, self.hit_slop * 2)
 
     def _active_toolbar_actions(self) -> List[str]:
         if self.active_section == "Build":
@@ -347,15 +410,15 @@ class GameUI:
     def _handle_click(self, mx: int, my: int) -> bool:
         ui_rects = self._ui_rects()
         for rect, section in ui_rects["sections"]:
-            if rect.collidepoint(mx, my):
+            if self._expanded_hit_rect(rect).collidepoint(mx, my):
                 self._set_section(section)
                 return True
         for rect, subsection in ui_rects["subsections"]:
-            if rect.collidepoint(mx, my):
+            if self._expanded_hit_rect(rect).collidepoint(mx, my):
                 self._set_subsection(subsection)
                 return True
         for rect, label in self._toolbar_rects():
-            if rect.collidepoint(mx, my):
+            if self._expanded_hit_rect(rect).collidepoint(mx, my):
                 return self._handle_toolbar_action(label)
         return False
 
@@ -369,6 +432,8 @@ class GameUI:
             if hasattr(pygame, "WINDOWSIZECHANGED") and ev.type == pygame.WINDOWSIZECHANGED:
                 self._reflow_layout(*self.screen.get_size())
             if ev.type == pygame.KEYDOWN:
+                if self.touch_mode:
+                    continue
                 if ev.key == pygame.K_1:
                     self.selected = CONVEYOR
                 elif ev.key == pygame.K_2:
@@ -477,9 +542,15 @@ class GameUI:
 
     def _draw_chip(self, rect: pygame.Rect, label: str, active: bool) -> None:
         bg = self.palette["chip_active"] if active else self.palette["chip"]
-        pygame.draw.rect(self.screen, bg, rect, border_radius=8)
-        pygame.draw.rect(self.screen, self.palette["panel_border"], rect, width=1, border_radius=8)
-        self.screen.blit(self.small.render(label, True, self.palette["text"]), (rect.x + 8, rect.y + 6))
+        border = self.palette["chip_active_border"] if active else self.palette["panel_border"]
+        label_color = (255, 255, 255) if active else self.palette["text"]
+        radius = 14 if self.touch_mode else 9
+        pygame.draw.rect(self.screen, bg, rect, border_radius=radius)
+        pygame.draw.rect(self.screen, border, rect, width=2 if active else 1, border_radius=radius)
+        shown = self._toolbar_button_label(label)
+        text = self.chip_font.render(shown, True, label_color)
+        text_rect = text.get_rect(center=rect.center)
+        self.screen.blit(text, text_rect)
 
     def _draw_sidebar(self) -> None:
         assert self.layout is not None
@@ -621,12 +692,18 @@ class GameUI:
             )
             self._draw_chip(rect, label, active)
 
+        toolbar_rects = self._toolbar_rects()
+        text_y = self.layout.panel_y + self.panel_h - (32 if self.touch_mode else 26)
+        if toolbar_rects:
+            text_y = max(text_y, max(rect.bottom for rect, _ in toolbar_rects) + 8)
+            text_y = min(text_y, self.layout.panel_y + self.panel_h - (32 if self.touch_mode else 26))
+
         dtext = (
             f"Tool={self.selected.upper()} Rot={self.rotation} | Menu={self.active_section}/{self.active_subsection} "
             f"| Orders={len(self.sim.orders)} Deliveries={len(self.sim.deliveries)} Cash=${self.sim.money} "
             f"Rev=${self.sim.total_revenue} Spend=${self.sim.total_spend}"
         )
-        self.screen.blit(self.small.render(dtext, True, (255, 236, 160)), (10, self.layout.panel_y + 150))
+        self.screen.blit(self.small.render(dtext, True, (255, 236, 160)), (10, text_y))
 
         self._draw_sidebar()
         pygame.display.flip()

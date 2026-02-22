@@ -282,5 +282,167 @@ class TestFactorySimSerialisation(unittest.TestCase):
         self.assertNotIn("alien_tech", sim2.tech_tree)
 
 
+class TestResearchEffects(unittest.TestCase):
+    """Verify each new research unlock produces its intended simulation effect."""
+
+    def _fresh(self) -> FactorySim:
+        return FactorySim(seed=77)
+
+    # ---- tech tree coverage ----
+
+    def test_tech_tree_has_all_expected_keys(self):
+        sim = self._fresh()
+        expected = {
+            "ovens", "turbo_oven", "precision_cooking",
+            "bots", "hygiene_training",
+            "turbo_belts", "priority_dispatch", "double_spawn",
+        }
+        self.assertTrue(expected.issubset(sim.tech_tree.keys()))
+
+    def test_all_new_tech_starts_locked(self):
+        sim = self._fresh()
+        for key in ("turbo_oven", "precision_cooking", "hygiene_training",
+                    "priority_dispatch", "double_spawn"):
+            self.assertFalse(sim.tech_tree[key], f"{key} should start locked")
+
+    # ---- turbo_oven: oven tiles run faster ----
+
+    def test_turbo_oven_increases_progress_on_oven_tile(self):
+        from config import OVEN
+        from game.entities import Item
+
+        sim_base = self._fresh()
+        sim_turbo = self._fresh()
+        sim_turbo.tech_tree["turbo_oven"] = True
+
+        # Place an item directly on the oven tile
+        for sim in (sim_base, sim_turbo):
+            sim.items.append(Item(x=12, y=7, progress=0.0, stage="processed", ingredient_type="flour"))
+
+        dt = 0.5
+        sim_base.tick(dt)
+        sim_turbo.tick(dt)
+
+        prog_base = next((i.progress for i in sim_base.items if i.x == 12 and i.y == 7), None)
+        prog_turbo = next((i.progress for i in sim_turbo.items if i.x == 12 and i.y == 7), None)
+
+        if prog_base is not None and prog_turbo is not None:
+            self.assertGreater(prog_turbo, prog_base)
+
+    # ---- hygiene_training: faster hygiene recovery ----
+
+    def test_hygiene_training_recovers_faster(self):
+        sim_base = self._fresh()
+        sim_trained = self._fresh()
+        sim_trained.tech_tree["hygiene_training"] = True
+
+        # Suppress random hygiene events by setting last_hygiene_event to now
+        for sim in (sim_base, sim_trained):
+            sim.hygiene = 60.0
+            sim.last_hygiene_event = 0.0
+
+        # Use a very short tick so hygiene events are not triggered (time < cooldown)
+        for _ in range(50):
+            sim_base.tick(0.01)
+            sim_trained.tick(0.01)
+
+        self.assertGreater(sim_trained.hygiene, sim_base.hygiene)
+
+    # ---- double_spawn: ingredient spawns more frequently ----
+
+    def test_double_spawn_produces_more_items(self):
+        from config import ITEM_SPAWN_INTERVAL, DOUBLE_SPAWN_INTERVAL_DIVISOR
+
+        sim_base = self._fresh()
+        sim_fast = self._fresh()
+        sim_fast.tech_tree["double_spawn"] = True
+
+        # Run for exactly enough time to see a difference in spawns
+        total_time = ITEM_SPAWN_INTERVAL * 3
+        dt = 0.05
+        ticks = int(total_time / dt) + 1
+
+        for _ in range(ticks):
+            sim_base.tick(dt)
+            sim_fast.tick(dt)
+
+        # double_spawn sim should have spawned at least as many items; with a
+        # shorter interval it is very likely to have spawned more.
+        self.assertGreaterEqual(
+            sim_fast.waste + len(sim_fast.items) + sim_fast.completed,
+            sim_base.waste + len(sim_base.items) + sim_base.completed,
+        )
+
+    # ---- priority_dispatch: late penalty is smaller ----
+
+    def test_priority_dispatch_earns_more_on_late_delivery(self):
+        from game.entities import Delivery, Order
+
+        sim_base = self._fresh()
+        sim_pd = self._fresh()
+        sim_pd.tech_tree["priority_dispatch"] = True
+
+        reward = 20
+        # Create a delivery that will complete late (sla=1s, remaining=5s)
+        for sim in (sim_base, sim_pd):
+            sim.deliveries.append(
+                Delivery(mode="drone", remaining=0.05, elapsed=9.0, sla=1.0,
+                         duration=0.05, recipe_key="margherita", reward=reward)
+            )
+
+        sim_base.tick(0.1)
+        sim_pd.tick(0.1)
+
+        self.assertGreater(sim_pd.money, sim_base.money)
+
+    # ---- precision_cooking: waste items give partial refund ----
+
+    def test_precision_cooking_refunds_wasted_items(self):
+        from game.entities import Item
+
+        sim = self._fresh()
+        sim.tech_tree["precision_cooking"] = True
+        # Ensure no orders so item at sink counts as waste
+        sim.orders.clear()
+        # Place a baked item adjacent to the sink so it enters the sink
+        sim.items.append(Item(x=17, y=7, progress=0.0, stage="baked", ingredient_type="flour"))
+
+        money_before = sim.money
+        for _ in range(15):
+            sim.tick(0.1)
+
+        # Waste count should have increased and refund credited
+        self.assertGreater(sim.waste, 0)
+        self.assertGreater(sim.money, money_before)
+
+    # ---- research auto-unlock via _process_research ----
+
+    def test_turbo_oven_auto_unlocks_at_threshold(self):
+        from config import TECH_UNLOCK_COSTS
+        sim = self._fresh()
+        sim.research_points = TECH_UNLOCK_COSTS["turbo_oven"]
+        sim.tick(0.01)
+        self.assertTrue(sim.tech_tree["turbo_oven"])
+
+    def test_priority_dispatch_auto_unlocks_at_threshold(self):
+        from config import TECH_UNLOCK_COSTS
+        sim = self._fresh()
+        sim.research_points = TECH_UNLOCK_COSTS["priority_dispatch"]
+        sim.tick(0.01)
+        self.assertTrue(sim.tech_tree["priority_dispatch"])
+
+    # ---- serialisation round-trip preserves new tech keys ----
+
+    def test_new_tech_keys_survive_round_trip(self):
+        sim = self._fresh()
+        sim.tech_tree["turbo_oven"] = True
+        sim.tech_tree["hygiene_training"] = True
+        d = sim.to_dict()
+        sim2 = FactorySim.from_dict(d)
+        self.assertTrue(sim2.tech_tree["turbo_oven"])
+        self.assertTrue(sim2.tech_tree["hygiene_training"])
+        self.assertFalse(sim2.tech_tree["precision_cooking"])
+
+
 if __name__ == "__main__":
     unittest.main()

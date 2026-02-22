@@ -1642,8 +1642,13 @@
   "research_points": 8.899999999999999,
   "tech_tree": {
     "ovens": true,
+    "turbo_oven": false,
+    "precision_cooking": false,
     "bots": true,
-    "turbo_belts": false
+    "hygiene_training": false,
+    "turbo_belts": false,
+    "priority_dispatch": false,
+    "double_spawn": false
   },
   "auto_bot_charge": 0.999999999999951,
   "completed": 6,

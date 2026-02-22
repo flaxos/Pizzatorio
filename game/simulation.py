@@ -17,6 +17,7 @@ from config import (
     BOT_DOCK,
     CONVEYOR,
     DIRS,
+    DOUBLE_SPAWN_INTERVAL_DIVISOR,
     EMPTY,
     EXPANSION_BASE_NEEDED,
     EXPANSION_DELIVERY_BONUS,
@@ -26,6 +27,7 @@ from config import (
     HYGIENE_EVENT_CHANCE,
     HYGIENE_EVENT_COOLDOWN,
     HYGIENE_RECOVERY_RATE,
+    HYGIENE_TRAINING_RECOVERY_BONUS,
     INGREDIENT_SPAWN_WEIGHTS,
     INGREDIENT_TYPES,
     ITEM_SPAWN_INTERVAL,
@@ -33,6 +35,8 @@ from config import (
     LATE_DELIVERY_PENALTY,
     MACHINE,
     OVEN,
+    PRECISION_COOKING_WASTE_REFUND,
+    PRIORITY_DISPATCH_LATE_MULTIPLIER,
     PROCESS_FLOW,
     PROCESSOR,
     SAVE_FILE,
@@ -40,6 +44,7 @@ from config import (
     SOURCE,
     TECH_UNLOCK_COSTS,
     TURBO_BELT_BONUS,
+    TURBO_OVEN_SPEED_BONUS,
     ORDER_SPAWN_INTERVAL,
 )
 from game.entities import Delivery, Item, Order, Tile
@@ -340,7 +345,12 @@ class FactorySim:
         self.spawn_timer += dt
         self.order_spawn_timer += dt
 
-        if self.spawn_timer >= ITEM_SPAWN_INTERVAL:
+        effective_spawn_interval = (
+            ITEM_SPAWN_INTERVAL / DOUBLE_SPAWN_INTERVAL_DIVISOR
+            if self.tech_tree.get("double_spawn", False)
+            else ITEM_SPAWN_INTERVAL
+        )
+        if self.spawn_timer >= effective_spawn_interval:
             self.spawn_timer = 0.0
             self._spawn_item()
 
@@ -349,11 +359,14 @@ class FactorySim:
             self._spawn_order()
 
         # Hygiene fluctuation
+        hygiene_recovery = HYGIENE_RECOVERY_RATE + (
+            HYGIENE_TRAINING_RECOVERY_BONUS if self.tech_tree.get("hygiene_training", False) else 0.0
+        )
         if self.time - self.last_hygiene_event > HYGIENE_EVENT_COOLDOWN and self.rng.random() < HYGIENE_EVENT_CHANCE:
             self.last_hygiene_event = self.time
             self.hygiene = clamp(self.hygiene - self.rng.uniform(8, 20), 0, 100)
         else:
-            self.hygiene = clamp(self.hygiene + dt * HYGIENE_RECOVERY_RATE, 0, 100)
+            self.hygiene = clamp(self.hygiene + dt * hygiene_recovery, 0, 100)
 
         blocked = 0
         moved_items: List[Item] = []
@@ -365,7 +378,8 @@ class FactorySim:
             if tile.kind in (MACHINE, PROCESSOR):
                 speed = 0.5 + (self.hygiene / 220.0)
             elif tile.kind == OVEN:
-                speed = 0.35 + (self.hygiene / 280.0)
+                oven_bonus = TURBO_OVEN_SPEED_BONUS if self.tech_tree.get("turbo_oven", False) else 0.0
+                speed = 0.35 + oven_bonus + (self.hygiene / 280.0)
             item.progress += dt * speed
 
             if item.progress < 1.0:
@@ -399,6 +413,10 @@ class FactorySim:
                         self.deliveries[-1].duration = self.deliveries[-1].remaining
                 else:
                     self.waste += 1
+                    if self.tech_tree.get("precision_cooking", False) and RECIPES:
+                        default_recipe = next(iter(RECIPES))
+                        refund = int(RECIPES[default_recipe]["sell_price"] * PRECISION_COOKING_WASTE_REFUND)
+                        self.money += refund
                 continue
 
             if ntile.kind == EMPTY:
@@ -443,6 +461,11 @@ class FactorySim:
         self.orders = next_orders
 
         # Delivery completion
+        late_penalty = (
+            PRIORITY_DISPATCH_LATE_MULTIPLIER
+            if self.tech_tree.get("priority_dispatch", False)
+            else LATE_DELIVERY_PENALTY
+        )
         next_deliveries: List[Delivery] = []
         for d in self.deliveries:
             d.elapsed += dt
@@ -453,7 +476,7 @@ class FactorySim:
                     self.ontime += 1
                     self.money += d.reward
                 else:
-                    self.money += int(d.reward * LATE_DELIVERY_PENALTY)
+                    self.money += int(d.reward * late_penalty)
             else:
                 next_deliveries.append(d)
         self.deliveries = next_deliveries

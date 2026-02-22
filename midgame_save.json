@@ -1533,9 +1533,17 @@
   ],
   "items": [
     {
+      "x": 17,
+      "y": 7,
+      "progress": 0.9500000000000003,
+      "stage": "baked",
+      "delivery_boost": 1.2,
+      "ingredient_type": "flour"
+    },
+    {
       "x": 16,
       "y": 7,
-      "progress": 0.5,
+      "progress": 0.15000000000000002,
       "stage": "baked",
       "delivery_boost": 1.2,
       "ingredient_type": "flour"
@@ -1543,105 +1551,104 @@
     {
       "x": 14,
       "y": 7,
-      "progress": 0.8999999999999999,
+      "progress": 0.35,
       "stage": "baked",
       "delivery_boost": 0.0,
-      "ingredient_type": "cheese"
+      "ingredient_type": "tomato"
     },
     {
-      "x": 13,
+      "x": 12,
       "y": 7,
-      "progress": 0.1,
-      "stage": "baked",
+      "progress": 0.7304342288537715,
+      "stage": "processed",
       "delivery_boost": 0.0,
       "ingredient_type": "cheese"
     },
     {
       "x": 11,
       "y": 7,
-      "progress": 0.9999999999999999,
+      "progress": 0.3,
+      "stage": "processed",
+      "delivery_boost": 0.0,
+      "ingredient_type": "cheese"
+    },
+    {
+      "x": 9,
+      "y": 7,
+      "progress": 0.49999999999999994,
       "stage": "processed",
       "delivery_boost": 0.0,
       "ingredient_type": "flour"
-    },
-    {
-      "x": 10,
-      "y": 7,
-      "progress": 0.30000000000000004,
-      "stage": "processed",
-      "delivery_boost": 0.0,
-      "ingredient_type": "flour"
-    },
-    {
-      "x": 8,
-      "y": 7,
-      "progress": 0.7,
-      "stage": "processed",
-      "delivery_boost": 0.0,
-      "ingredient_type": "tomato"
     },
     {
       "x": 7,
       "y": 7,
-      "progress": 0.08846221693690015,
+      "progress": 0.7648936062694117,
+      "stage": "raw",
+      "delivery_boost": 0.0,
+      "ingredient_type": "cheese"
+    },
+    {
+      "x": 6,
+      "y": 7,
+      "progress": 0.05,
       "stage": "raw",
       "delivery_boost": 0.0,
       "ingredient_type": "flour"
     },
     {
-      "x": 5,
+      "x": 4,
       "y": 7,
-      "progress": 0.5,
+      "progress": 0.25,
       "stage": "raw",
       "delivery_boost": 0.0,
-      "ingredient_type": "pepperoni"
-    },
-    {
-      "x": 3,
-      "y": 7,
-      "progress": 0.8999999999999999,
-      "stage": "raw",
-      "delivery_boost": 0.0,
-      "ingredient_type": "tomato"
+      "ingredient_type": "flour"
     },
     {
       "x": 2,
       "y": 7,
-      "progress": 0.2,
+      "progress": 0.44999999999999996,
       "stage": "raw",
       "delivery_boost": 0.0,
-      "ingredient_type": "onion"
+      "ingredient_type": "tomato"
     }
   ],
   "deliveries": [
     {
-      "mode": "drone",
-      "remaining": 2.0265748888114974,
-      "sla": 11.0,
-      "duration": 4.126574888811499,
+      "mode": "scooter",
+      "remaining": 0.019173282081358226,
+      "sla": 10.749999999999996,
+      "duration": 6.219173282081347,
       "recipe_key": "margherita",
       "reward": 12,
-      "elapsed": 2.1000000000000005
+      "elapsed": 5.399999999999989
     }
   ],
-  "orders": [],
-  "time": 30.000000000000156,
-  "spawn_timer": 1.2,
-  "order_spawn_timer": 2.0000000000000004,
-  "hygiene": 84.61687726118032,
+  "orders": [
+    {
+      "recipe_key": "margherita",
+      "remaining_sla": 10.899999999999999,
+      "total_sla": 11.0,
+      "reward": 12
+    }
+  ],
+  "time": 49.9999999999993,
+  "spawn_timer": 1.4000000000000006,
+  "order_spawn_timer": 0.05,
+  "hygiene": 88.11246279914185,
   "bottleneck": 0,
   "expansion_level": 1,
-  "expansion_progress": 10.790000000000028,
-  "research_points": 4.110000000000001,
+  "expansion_progress": 21.957999999999835,
+  "research_points": 8.899999999999999,
   "tech_tree": {
     "ovens": true,
     "bots": true,
     "turbo_belts": false
   },
-  "auto_bot_charge": 0.7999999999999644,
-  "completed": 3,
-  "ontime": 3,
-  "money": 36,
-  "waste": 2,
-  "last_hygiene_event": 22.60000000000005
+  "auto_bot_charge": 0.999999999999951,
+  "completed": 6,
+  "ontime": 6,
+  "money": 72,
+  "waste": 10,
+  "last_hygiene_event": 32.90000000000027
 }

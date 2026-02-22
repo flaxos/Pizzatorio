@@ -937,6 +937,13 @@ class GameUI:
             for line in self.sim.event_log[-4:]:
                 self.screen.blit(self.small.render(line, True, self.palette["muted"]), (self.layout.play_w + 14, detail_y))
                 detail_y += 21
+        if self.active_section == "Info" and self.active_subsection == "Economy":
+            detail_y = card_y + 138
+            self.screen.blit(self.small.render("Channel economy:", True, self.palette["muted"]), (self.layout.play_w + 14, detail_y))
+            detail_y += 22
+            for line in self.sim.channel_stats_rows()[:3]:
+                self.screen.blit(self.small.render(line, True, self.palette["muted"]), (self.layout.play_w + 14, detail_y))
+                detail_y += 21
 
     def draw_tile(self, x: int, y: int, tile) -> None:
         assert self.layout is not None

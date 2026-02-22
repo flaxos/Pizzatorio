@@ -910,6 +910,9 @@ class TestOrderChannels(unittest.TestCase):
         self.assertEqual(sim.completed, 1)
         self.assertEqual(sim.ontime, 1)
         self.assertEqual(sim.money, starting_money + 12)
+        self.assertEqual(sim.channel_stats["eat_in"]["completed"], 1)
+        self.assertEqual(sim.channel_stats["eat_in"]["ontime"], 1)
+        self.assertEqual(sim.channel_stats["eat_in"]["revenue"], 12)
 
     def test_eat_in_sink_completion_does_not_create_delivery(self):
         sim = FactorySim(seed=4)
@@ -971,6 +974,32 @@ class TestOrderChannels(unittest.TestCase):
         sim.set_order_channel("eat_in")
         loaded = FactorySim.from_dict(sim.to_dict())
         self.assertEqual(loaded.order_channel, "eat_in")
+
+    def test_channel_stats_track_delivery_completion(self):
+        sim = FactorySim(seed=4)
+        sim._enqueue_delivery(
+            Order(recipe_key="margherita", remaining_sla=20.0, total_sla=20.0, reward=12, channel_key="takeaway")
+        )
+        sim.deliveries[0].remaining = 0.0
+        sim.deliveries[0].elapsed = 1.0
+        sim.deliveries[0].sla = 20.0
+
+        sim.tick(0.1)
+
+        self.assertEqual(sim.channel_stats["takeaway"]["completed"], 1)
+        self.assertEqual(sim.channel_stats["takeaway"]["ontime"], 1)
+        self.assertEqual(sim.channel_stats["takeaway"]["revenue"], 12)
+
+    def test_channel_stats_track_missed_orders(self):
+        sim = FactorySim(seed=4)
+        sim.orders.clear()
+        sim.orders.append(
+            Order(recipe_key="margherita", remaining_sla=0.01, total_sla=20.0, reward=12, channel_key="takeaway")
+        )
+
+        sim.tick(0.1)
+
+        self.assertEqual(sim.channel_stats["takeaway"]["missed"], 1)
 
 
 class TestIngredientRecipeCoverage(unittest.TestCase):

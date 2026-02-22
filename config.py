@@ -134,6 +134,18 @@ INGREDIENT_TYPES: list[str] = [
     "onion",
     "olive",
     "pineapple",
+    # Extended ingredient set — covers all recipe toppings
+    "jalapeno",
+    "artichoke",
+    "bacon",
+    "sausage",
+    "garlic",
+    "spinach",
+    "corn",
+    "anchovy",
+    "beef",
+    "rocket",
+    "basil",
 ]
 
 # Weighted pool used when spawning ingredients without a specific order context
@@ -149,6 +161,17 @@ INGREDIENT_SPAWN_WEIGHTS: dict[str, float] = {
     "onion": 0.8,
     "olive": 0.7,
     "pineapple": 0.5,
+    "jalapeno": 0.7,
+    "artichoke": 0.4,
+    "bacon": 1.0,
+    "sausage": 0.8,
+    "garlic": 1.2,
+    "spinach": 0.6,
+    "corn": 0.5,
+    "anchovy": 0.3,
+    "beef": 0.7,
+    "rocket": 0.4,
+    "basil": 0.6,
 }
 
 # Mapping from raw ingredient type → processed product IDs it can produce.
@@ -166,6 +189,17 @@ INGREDIENT_TO_PRODUCTS: dict[str, list[str]] = {
     "onion": ["diced_onion"],
     "olive": ["sliced_olives"],
     "pineapple": ["pineapple_chunks"],
+    "jalapeno": ["sliced_jalapeno"],
+    "artichoke": ["artichoke_hearts"],
+    "bacon": ["bacon_strips"],
+    "sausage": ["sliced_sausage"],
+    "garlic": ["minced_garlic"],
+    "spinach": ["washed_spinach"],
+    "corn": ["corn_kernels"],
+    "anchovy": ["anchovy_fillets"],
+    "beef": ["cooked_beef_crumble"],
+    "rocket": ["rocket_leaves"],
+    "basil": ["fresh_basil"],
 }
 
 # Per-item purchase cost when sourcing raw ingredients from SOURCE.
@@ -181,4 +215,15 @@ INGREDIENT_PURCHASE_COSTS: dict[str, int] = {
     "onion": 2,
     "olive": 3,
     "pineapple": 3,
+    "jalapeno": 3,
+    "artichoke": 4,
+    "bacon": 4,
+    "sausage": 4,
+    "garlic": 2,
+    "spinach": 2,
+    "corn": 2,
+    "anchovy": 5,
+    "beef": 4,
+    "rocket": 2,
+    "basil": 2,
 }

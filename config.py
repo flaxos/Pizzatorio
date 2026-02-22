@@ -108,6 +108,8 @@ MACHINE_BUILD_COSTS: dict[str, int] = {
 REPUTATION_STARTING: float = 50.0      # initial reputation score
 REPUTATION_GAIN_ONTIME: float = 0.8    # reputation gained per on-time delivery
 REPUTATION_LOSS_LATE: float = 1.5      # reputation lost per late delivery
+REPUTATION_LOSS_MISSED_ORDER: float = 1.0  # reputation lost when an order expires before fulfillment
+MISSED_ORDER_CASH_PENALTY_MULTIPLIER: float = 0.25  # fraction of reward charged when an order times out
 
 # ---------------------------------------------------------------------------
 # Expansion tech effects

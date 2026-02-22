@@ -45,6 +45,7 @@ from config import (
     PROCESSOR,
     REPUTATION_GAIN_ONTIME,
     REPUTATION_LOSS_LATE,
+    REPUTATION_LOSS_MISSED_ORDER,
     REPUTATION_STARTING,
     SAVE_FILE,
     SECOND_LOCATION_REWARD_BONUS,
@@ -54,6 +55,7 @@ from config import (
     TECH_UNLOCK_COSTS,
     TURBO_BELT_BONUS,
     TURBO_OVEN_SPEED_BONUS,
+    MISSED_ORDER_CASH_PENALTY_MULTIPLIER,
     ORDER_SPAWN_INTERVAL,
 )
 from game.entities import Delivery, Item, Order, Tile
@@ -683,6 +685,14 @@ class FactorySim:
             order.remaining_sla -= dt
             if order.remaining_sla > 0:
                 next_orders.append(order)
+                continue
+
+            self.reputation = clamp(self.reputation - REPUTATION_LOSS_MISSED_ORDER, 0.0, 100.0)
+            penalty = int(round(max(0.0, float(order.reward)) * MISSED_ORDER_CASH_PENALTY_MULTIPLIER))
+            charged = min(self.money, penalty)
+            self.money -= charged
+            self.total_spend += charged
+            self._log_event(f"Order expired: {order.recipe_key} (-${charged})")
         self.orders = next_orders
 
         # Delivery completion

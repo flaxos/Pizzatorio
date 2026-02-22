@@ -14,6 +14,7 @@ from config import (
     PROCESSOR,
     REPUTATION_GAIN_ONTIME,
     REPUTATION_LOSS_LATE,
+    REPUTATION_LOSS_MISSED_ORDER,
     REPUTATION_STARTING,
     SECOND_LOCATION_REWARD_BONUS,
     STARTING_MONEY,
@@ -273,6 +274,46 @@ class TestReputation(unittest.TestCase):
         )
         sim.tick(0.1)
         self.assertGreaterEqual(sim.reputation, 0.0)
+
+
+    def test_missed_order_lowers_reputation_and_charges_penalty(self):
+        sim = self._sim()
+        sim.orders = [
+            Order(
+                recipe_key="margherita",
+                remaining_sla=0.05,
+                total_sla=0.05,
+                reward=20,
+                channel_key="delivery",
+            )
+        ]
+        rep_before = sim.reputation
+        money_before = sim.money
+
+        sim.tick(0.1)
+
+        self.assertEqual(len(sim.orders), 0)
+        self.assertAlmostEqual(sim.reputation, rep_before - REPUTATION_LOSS_MISSED_ORDER, places=5)
+        self.assertEqual(sim.money, money_before - 5)
+        self.assertEqual(sim.total_spend, 5)
+
+    def test_missed_order_penalty_cannot_overdraft_cash(self):
+        sim = self._sim()
+        sim.money = 3
+        sim.orders = [
+            Order(
+                recipe_key="margherita",
+                remaining_sla=0.02,
+                total_sla=0.02,
+                reward=30,
+                channel_key="delivery",
+            )
+        ]
+
+        sim.tick(0.1)
+
+        self.assertEqual(sim.money, 0)
+        self.assertEqual(sim.total_spend, 3)
 
     def test_reputation_survives_serialization_round_trip(self):
         sim = self._sim()

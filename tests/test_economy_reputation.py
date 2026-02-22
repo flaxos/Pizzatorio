@@ -9,6 +9,8 @@ from config import (
     CONVEYOR,
     EMPTY,
     FRANCHISE_EXPANSION_BONUS,
+    INGREDIENT_PURCHASE_COSTS,
+    INGREDIENT_SPAWN_WEIGHTS,
     LATE_DELIVERY_PENALTY,
     MACHINE_BUILD_COSTS,
     OVEN,
@@ -164,6 +166,31 @@ class TestMachineBuildCosts(unittest.TestCase):
         d = sim.to_dict()
         sim2 = FactorySim.from_dict(d)
         self.assertEqual(sim.money, sim2.money)
+
+class TestIngredientSourcingCosts(unittest.TestCase):
+    """Source spawns now consume cash per ingredient purchase."""
+
+    def test_all_spawned_ingredients_have_purchase_costs(self):
+        self.assertEqual(set(INGREDIENT_PURCHASE_COSTS), set(INGREDIENT_SPAWN_WEIGHTS))
+        self.assertTrue(all(cost > 0 for cost in INGREDIENT_PURCHASE_COSTS.values()))
+
+    def test_spawn_deducts_cash_and_tracks_spend(self):
+        sim = FactorySim(seed=7)
+        money_before = sim.money
+        spend_before = sim.total_spend
+        sim._spawn_item()
+        self.assertEqual(len(sim.items), 1)
+        spawned = sim.items[0].ingredient_type
+        expected_cost = INGREDIENT_PURCHASE_COSTS[spawned]
+        self.assertEqual(sim.money, money_before - expected_cost)
+        self.assertEqual(sim.total_spend, spend_before + expected_cost)
+
+    def test_spawn_is_blocked_when_cash_below_ingredient_cost(self):
+        sim = FactorySim(seed=7)
+        sim.money = 0
+        sim._spawn_item()
+        self.assertEqual(sim.items, [])
+        self.assertEqual(sim.total_spend, 0)
 
 class TestEconomyTelemetry(unittest.TestCase):
     """Revenue/spend telemetry supports Info > Economy UI."""

@@ -65,6 +65,20 @@ class GameUI:
         self.active_subsection = self.subsections[self.active_section][0]
         self.order_channel = self.sim.order_channel
         self.commercial_strategy = self.sim.commercial_strategy
+        self.toolbar_actions = [
+            "1 Conveyor",
+            "2 Processor",
+            "3 Oven",
+            "4 Bot Dock",
+            "6 Assembly",
+            "5 Delete",
+            "Rot -",
+            "Rot +",
+            "C Cycle R&D",
+            "U Unlock",
+            "S Save",
+            "L Load",
+        ]
 
         self.palette = {
             "bg": (12, 15, 24),
@@ -125,14 +139,44 @@ class GameUI:
 
     def _toolbar_rects(self) -> List[Tuple[pygame.Rect, str]]:
         y = self.grid_px_h + 78
-        labels = ["1 Conveyor", "2 Processor", "3 Oven", "4 Bot Dock", "6 Assembly", "5 Delete", "R Rotate", "Q/E Rot ±", "C Cycle R&D", "U Unlock"]
         rects = []
         x = 10
-        for label in labels:
+        for label in self.toolbar_actions:
             w = max(86, len(label) * 8 + 20)
             rects.append((pygame.Rect(x, y, w, 30), label))
             x += w + 8
         return rects
+
+    def _handle_toolbar_action(self, label: str) -> bool:
+        if label == "1 Conveyor":
+            self.selected = CONVEYOR
+        elif label == "2 Processor":
+            self.selected = PROCESSOR
+        elif label == "3 Oven":
+            self.selected = OVEN
+        elif label == "4 Bot Dock":
+            self.selected = BOT_DOCK
+        elif label == "6 Assembly":
+            self.selected = ASSEMBLY_TABLE
+        elif label == "5 Delete":
+            self.selected = EMPTY
+        elif label == "Rot -":
+            self.rotation = (self.rotation - 1) % 4
+        elif label == "Rot +":
+            self.rotation = (self.rotation + 1) % 4
+        elif label == "C Cycle R&D":
+            self.sim.cycle_research_focus()
+        elif label == "U Unlock":
+            self.sim.try_unlock_research_focus()
+        elif label == "S Save":
+            self.sim.save()
+        elif label == "L Load" and SAVE_FILE.exists():
+            self.sim = FactorySim.load()
+            self.order_channel = self.sim.order_channel
+            self.commercial_strategy = self.sim.commercial_strategy
+        else:
+            return False
+        return True
 
     def _handle_click(self, mx: int, my: int) -> bool:
         ui_rects = self._ui_rects()
@@ -144,6 +188,9 @@ class GameUI:
             if rect.collidepoint(mx, my):
                 self._set_subsection(subsection)
                 return True
+        for rect, label in self._toolbar_rects():
+            if rect.collidepoint(mx, my):
+                return self._handle_toolbar_action(label)
         return False
 
     def handle_input(self) -> None:
@@ -164,9 +211,9 @@ class GameUI:
                 elif ev.key == pygame.K_5:
                     self.selected = EMPTY
                 elif ev.key == pygame.K_r or ev.key == pygame.K_e:
-                    self.rotation = (self.rotation + 1) % 4
+                    self._handle_toolbar_action("Rot +")
                 elif ev.key == pygame.K_q:
-                    self.rotation = (self.rotation - 1) % 4
+                    self._handle_toolbar_action("Rot -")
                 elif ev.key == pygame.K_TAB:
                     self._cycle_section()
                 elif ev.key == pygame.K_F1:
@@ -180,15 +227,13 @@ class GameUI:
                 elif ev.key == pygame.K_F5:
                     self._set_section("Info")
                 elif ev.key == pygame.K_s:
-                    self.sim.save()
+                    self._handle_toolbar_action("S Save")
                 elif ev.key == pygame.K_c:
-                    self.sim.cycle_research_focus()
+                    self._handle_toolbar_action("C Cycle R&D")
                 elif ev.key == pygame.K_u:
-                    self.sim.try_unlock_research_focus()
-                elif ev.key == pygame.K_l and SAVE_FILE.exists():
-                    self.sim = FactorySim.load()
-                    self.order_channel = self.sim.order_channel
-                    self.commercial_strategy = self.sim.commercial_strategy
+                    self._handle_toolbar_action("U Unlock")
+                elif ev.key == pygame.K_l:
+                    self._handle_toolbar_action("L Load")
             if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
                 x, y = pygame.mouse.get_pos()
                 if y >= self.grid_px_h and self._handle_click(x, y):

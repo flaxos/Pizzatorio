@@ -111,12 +111,13 @@ class GameUI:
         self.min_zoom = 0.6
         self.max_zoom = 2.2
 
-        self._reflow_layout(*self.screen.get_size())
-        pygame.display.set_caption("Pizzatorio Factory")
-        self.clock = pygame.time.Clock()
         self.touch_target_min_h = 56 if self.touch_mode else 34
         self.touch_horizontal_padding = 26 if self.touch_mode else 14
         self.hit_slop = 12 if self.touch_mode else 5
+
+        self._reflow_layout(*self.screen.get_size())
+        pygame.display.set_caption("Pizzatorio Factory")
+        self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("arial", 22)
         self.small = pygame.font.SysFont("arial", 17)
         self.chip_font = self.small

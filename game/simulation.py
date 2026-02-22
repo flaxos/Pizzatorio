@@ -448,7 +448,8 @@ class FactorySim:
     # ------------------------------------------------------------------
 
     def _process_research(self) -> None:
-        if self.try_unlock_research_focus():
+        if self.research_focus:
+            self.try_unlock_research_focus()
             return
 
         tech_state_at_tick_start = dict(self.tech_tree)

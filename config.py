@@ -112,6 +112,13 @@ REPUTATION_LOSS_MISSED_ORDER: float = 1.0  # reputation lost when an order expir
 MISSED_ORDER_CASH_PENALTY_MULTIPLIER: float = 0.25  # fraction of reward charged when an order times out
 
 # ---------------------------------------------------------------------------
+# Operating costs — recurring rent/wages charged every billing interval
+# ---------------------------------------------------------------------------
+OPERATING_COST_INTERVAL: float = 10.0  # sim-seconds between each billing tick
+OPERATING_COST_BASE: int = 8           # base cost per interval (rent/fixed wages)
+OPERATING_COST_PER_TIER: int = 4       # additional cost per expansion tier above 1
+
+# ---------------------------------------------------------------------------
 # Expansion tech effects
 # ---------------------------------------------------------------------------
 SECOND_LOCATION_REWARD_BONUS: float = 0.15   # +15% delivery reward when unlocked

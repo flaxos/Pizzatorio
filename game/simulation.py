@@ -40,6 +40,11 @@ from config import (
     LATE_DELIVERY_PENALTY,
     MACHINE,
     MACHINE_BUILD_COSTS,
+    MISSED_ORDER_CASH_PENALTY_MULTIPLIER,
+    OPERATING_COST_BASE,
+    OPERATING_COST_INTERVAL,
+    OPERATING_COST_PER_TIER,
+    ORDER_SPAWN_INTERVAL,
     OVEN,
     PRECISION_COOKING_WASTE_REFUND,
     PRIORITY_DISPATCH_LATE_MULTIPLIER,
@@ -59,8 +64,6 @@ from config import (
     TECH_UNLOCK_COSTS,
     TURBO_BELT_BONUS,
     TURBO_OVEN_SPEED_BONUS,
-    MISSED_ORDER_CASH_PENALTY_MULTIPLIER,
-    ORDER_SPAWN_INTERVAL,
 )
 from game.entities import Delivery, Item, Order, Tile
 from commercial_catalog import load_commercial_catalog
@@ -117,6 +120,7 @@ class FactorySim:
         self.order_channel: str = "delivery" if "delivery" in ORDER_CHANNELS else next(iter(ORDER_CHANNELS))
         self.commercial_strategy: str = next(iter(COMMERCIALS))
         self.research_focus: str = ""
+        self.cost_timer: float = 0.0
         self._log_event("Factory initialized")
 
         self.place_static_world()
@@ -166,6 +170,7 @@ class FactorySim:
             "order_channel": self.order_channel,
             "commercial_strategy": self.commercial_strategy,
             "research_focus": self.research_focus,
+            "cost_timer": self.cost_timer,
         }
 
     @classmethod
@@ -241,6 +246,7 @@ class FactorySim:
         if saved_focus and saved_focus in TECH_UNLOCK_COSTS and not sim.tech_tree.get(saved_focus, False):
             if sim._research_prerequisites_met(saved_focus):
                 sim.research_focus = saved_focus
+        sim.cost_timer = float(data.get("cost_timer", 0.0))
         return sim
 
     def _log_event(self, message: str) -> None:
@@ -655,6 +661,16 @@ class FactorySim:
             self.order_spawn_timer = 0.0
             self._ensure_active_order_channel_is_unlocked()
             self._spawn_order()
+
+        # Operating costs — rent and wages charged every billing interval
+        self.cost_timer += dt
+        if self.cost_timer >= OPERATING_COST_INTERVAL:
+            self.cost_timer -= OPERATING_COST_INTERVAL
+            cost = OPERATING_COST_BASE + OPERATING_COST_PER_TIER * max(0, self.expansion_level - 1)
+            charged = min(self.money, cost)
+            self.money -= charged
+            self.total_spend += charged
+            self._log_event(f"Operating costs: -${charged}")
 
         # Hygiene fluctuation
         hygiene_recovery = HYGIENE_RECOVERY_RATE + (

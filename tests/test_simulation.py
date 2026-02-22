@@ -720,6 +720,101 @@ class TestAssemblyTable(unittest.TestCase):
 
         self.assertEqual(run(200), run(200))
 
+    # --- Ingredient-aware assembly table validation ---
+
+    def test_assembly_table_rejects_unmatched_ingredient(self):
+        """Pepperoni item should NOT be tagged for a margherita order
+        (margherita needs fresh_basil topping, not sliced_pepperoni)."""
+        sim = self._fresh()
+        sim.grid[7][5] = Tile(ASSEMBLY_TABLE, rot=0)
+        sim.orders.clear()
+        sim.orders.append(Order(recipe_key="margherita", remaining_sla=60.0, total_sla=60.0, reward=12))
+        sim.items.append(Item(x=5, y=7, progress=0.90, stage="processed", ingredient_type="pepperoni"))
+        sim.tick(0.2)
+        # Item passes through untagged because pepperoni → sliced_pepperoni
+        # and margherita doesn't need sliced_pepperoni
+        for item in sim.items:
+            self.assertEqual(item.recipe_key, "")
+
+    def test_assembly_table_tags_matching_topping_ingredient(self):
+        """Pepperoni item should be tagged for a pepperoni pizza order."""
+        sim = self._fresh()
+        sim.grid[7][5] = Tile(ASSEMBLY_TABLE, rot=0)
+        sim.orders.clear()
+        sim.orders.append(Order(recipe_key="pepperoni", remaining_sla=60.0, total_sla=60.0, reward=15))
+        sim.items.append(Item(x=5, y=7, progress=0.90, stage="processed", ingredient_type="pepperoni"))
+        sim.tick(0.2)
+        tagged = [i for i in sim.items if i.recipe_key == "pepperoni"]
+        self.assertEqual(len(tagged), 1)
+
+    def test_assembly_table_base_ingredient_matches_any_recipe(self):
+        """Flour (→ rolled_pizza_base) matches any recipe since all need a base."""
+        sim = self._fresh()
+        sim.grid[7][5] = Tile(ASSEMBLY_TABLE, rot=0)
+        sim.orders.clear()
+        sim.orders.append(Order(recipe_key="pepperoni", remaining_sla=60.0, total_sla=60.0, reward=15))
+        sim.items.append(Item(x=5, y=7, progress=0.90, stage="processed", ingredient_type="flour"))
+        sim.tick(0.2)
+        tagged = [i for i in sim.items if i.recipe_key == "pepperoni"]
+        self.assertEqual(len(tagged), 1)
+
+    def test_assembly_table_skips_first_order_matches_second(self):
+        """When first order doesn't need the ingredient but second does, tag second."""
+        sim = self._fresh()
+        sim.grid[7][5] = Tile(ASSEMBLY_TABLE, rot=0)
+        sim.orders.clear()
+        # margherita doesn't need pepperoni, but pepperoni recipe does
+        sim.orders.append(Order(recipe_key="margherita", remaining_sla=60.0, total_sla=60.0, reward=12))
+        sim.orders.append(Order(recipe_key="pepperoni", remaining_sla=60.0, total_sla=60.0, reward=15))
+        sim.items.append(Item(x=5, y=7, progress=0.90, stage="processed", ingredient_type="pepperoni"))
+        sim.tick(0.2)
+        tagged = [i for i in sim.items if i.recipe_key != ""]
+        self.assertEqual(len(tagged), 1)
+        self.assertEqual(tagged[0].recipe_key, "pepperoni")
+
+    def test_assembly_table_empty_ingredient_type_not_tagged(self):
+        """Items with empty ingredient_type (legacy) are not tagged."""
+        sim = self._fresh()
+        sim.grid[7][5] = Tile(ASSEMBLY_TABLE, rot=0)
+        sim.orders.append(Order(recipe_key="margherita", remaining_sla=60.0, total_sla=60.0, reward=12))
+        sim.items.append(Item(x=5, y=7, progress=0.90, stage="processed", ingredient_type=""))
+        sim.tick(0.2)
+        for item in sim.items:
+            self.assertEqual(item.recipe_key, "")
+
+    def test_assembly_table_unknown_ingredient_type_not_tagged(self):
+        """Items with unknown ingredient_type are not tagged."""
+        sim = self._fresh()
+        sim.grid[7][5] = Tile(ASSEMBLY_TABLE, rot=0)
+        sim.orders.append(Order(recipe_key="margherita", remaining_sla=60.0, total_sla=60.0, reward=12))
+        sim.items.append(Item(x=5, y=7, progress=0.90, stage="processed", ingredient_type="unicorn"))
+        sim.tick(0.2)
+        for item in sim.items:
+            self.assertEqual(item.recipe_key, "")
+
+    def test_ingredient_to_products_covers_all_ingredient_types(self):
+        """Every spawnable ingredient type has a product mapping."""
+        from config import INGREDIENT_TO_PRODUCTS, INGREDIENT_TYPES
+        for ingredient in INGREDIENT_TYPES:
+            self.assertIn(ingredient, INGREDIENT_TO_PRODUCTS,
+                          f"{ingredient} missing from INGREDIENT_TO_PRODUCTS")
+            self.assertTrue(len(INGREDIENT_TO_PRODUCTS[ingredient]) > 0,
+                            f"{ingredient} maps to empty product list")
+
+    def test_recipe_required_products_helper(self):
+        """The helper returns the correct set of required product IDs."""
+        recipe = {
+            "base": "rolled_pizza_base",
+            "sauce": "tomato_sauce",
+            "cheese": "shredded_cheese",
+            "toppings": ["sliced_pepperoni", "sliced_mushroom"],
+        }
+        products = FactorySim._recipe_required_products(recipe)
+        self.assertEqual(products, {
+            "rolled_pizza_base", "tomato_sauce", "shredded_cheese",
+            "sliced_pepperoni", "sliced_mushroom",
+        })
+
 
 class TestOrderChannels(unittest.TestCase):
     def test_set_order_channel_ignores_unknown(self):

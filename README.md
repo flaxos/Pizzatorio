@@ -53,6 +53,32 @@ python main.py --headless --ticks 1200 --dt 0.1
 python main.py --load
 ```
 
+
+## Auto-update launcher (Pydroid-friendly)
+If you installed the project from a ZIP and want a single command to update + run without touching `main.py`, use:
+
+```bash
+python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> --branch main
+```
+
+What it does:
+- Tries `git checkout <branch>` + `git pull --ff-only` when this folder is a git clone.
+- Falls back to downloading the GitHub branch ZIP and syncing files into the current project folder.
+- Preserves local runtime files like `midgame_save.json` and `ui_settings.json`.
+- Verifies runtime dependency `pygame` before launching the graphical game.
+
+Useful options:
+```bash
+# only verify update path + dependencies
+python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> --check-only
+
+# launch headless (skips pygame dependency check)
+python mobile_updater.py --headless --mode auto --repo-url https://github.com/<owner>/<repo>
+
+# pass extra args to main.py
+python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> -- --load
+```
+
 ## Pydroid notes
 Install pygame in Pydroid pip before running graphical mode:
 ```bash

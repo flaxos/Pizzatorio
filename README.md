@@ -66,6 +66,8 @@ What it does:
 - Falls back to downloading the GitHub branch ZIP and syncing files into the current project folder.
 - Preserves local runtime files like `midgame_save.json` and `ui_settings.json`.
 - Verifies runtime dependency `pygame` before launching the graphical game.
+- If update remains unresolved in an interactive terminal, prompts for `[P]` proceed, `[H]` run headless, or `[Q]` quit.
+- In non-interactive runs, exits safely unless explicitly allowed to continue.
 
 Useful options:
 ```bash
@@ -74,6 +76,12 @@ python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo
 
 # launch headless (skips pygame dependency check)
 python mobile_updater.py --headless --mode auto --repo-url https://github.com/<owner>/<repo>
+
+# CI/automation-safe mode: disable prompts and fail if update is unresolved
+python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> --non-interactive
+
+# CI/automation override: continue launch even if update is unresolved
+python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> --non-interactive --allow-run-without-update
 
 # pass extra args to main.py
 python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> -- --load

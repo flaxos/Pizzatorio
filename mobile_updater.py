@@ -133,8 +133,30 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-update", action="store_true", help="Skip update and only launch")
     parser.add_argument("--check-only", action="store_true", help="Check update + dependencies and exit")
     parser.add_argument("--headless", action="store_true", help="Launch with --headless")
+    parser.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Disable prompts when updates fail (recommended for automation)",
+    )
+    parser.add_argument(
+        "--allow-run-without-update",
+        action="store_true",
+        help="In non-interactive mode, continue launch even if update could not be completed",
+    )
     parser.add_argument("args", nargs=argparse.REMAINDER, help="Extra args passed to main.py")
     return parser.parse_args()
+
+
+def prompt_update_failure_action() -> str:
+    prompt = (
+        "Update could not be completed. Choose an action: "
+        "[P] Proceed without update, [H] Run headless, [Q] Quit: "
+    )
+    while True:
+        choice = input(prompt).strip().lower()
+        if choice in {"p", "h", "q"}:
+            return choice
+        print("Please choose P, H, or Q.")
 
 
 def main() -> int:
@@ -145,9 +167,12 @@ def main() -> int:
         print(f"Error: main.py not found in {project_dir}")
         return 2
 
+    update_unresolved = False
+
     if not args.skip_update:
         success = False
         message = ""
+        missing_repo_url = False
 
         if args.mode in {"auto", "git"}:
             success, message = update_with_git(project_dir, args.branch)
@@ -156,6 +181,7 @@ def main() -> int:
 
         if args.mode in {"auto", "zip"} and not success:
             if not args.repo_url:
+                missing_repo_url = True
                 if args.mode == "zip":
                     print("[WARN] --repo-url is required for zip mode")
                 else:
@@ -164,7 +190,30 @@ def main() -> int:
                 success, message = update_with_zip(project_dir, args.repo_url, args.branch)
                 print(("[OK] " if success else "[WARN] ") + message)
 
-    deps_ok, missing = check_requirements(headless=args.headless)
+        update_unresolved = not success and (missing_repo_url or bool(message))
+
+    launch_headless = args.headless
+
+    if update_unresolved:
+        is_interactive = sys.stdin.isatty() and not args.non_interactive
+        if is_interactive:
+            action = prompt_update_failure_action()
+            if action == "q":
+                print("[WARN] Quitting without launching.")
+                return 4
+            if action == "h":
+                launch_headless = True
+                print("[WARN] Running headless without a successful update.")
+            else:
+                print("[WARN] Proceeding without a successful update.")
+        elif not args.allow_run_without_update:
+            print("[WARN] Update did not complete and launcher is non-interactive.")
+            print("Use --allow-run-without-update to continue launching anyway.")
+            return 4
+        else:
+            print("[WARN] Proceeding without a successful update (--allow-run-without-update).")
+
+    deps_ok, missing = check_requirements(headless=launch_headless)
     if not deps_ok:
         print(f"[WARN] Missing runtime modules: {', '.join(missing)}")
         print("Install them in Pydroid pip, then run this launcher again.")
@@ -175,7 +224,7 @@ def main() -> int:
         return 0
 
     passthrough = [a for a in args.args if a != "--"]
-    return launch_game(project_dir, headless=args.headless, passthrough=passthrough)
+    return launch_game(project_dir, headless=launch_headless, passthrough=passthrough)
 
 
 if __name__ == "__main__":

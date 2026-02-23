@@ -15,6 +15,7 @@ from urllib.request import urlopen
 
 PRESERVE_FILES = {"midgame_save.json", "ui_settings.json"}
 SKIP_TOP_LEVEL = {".git", "__pycache__", ".pytest_cache"}
+DEFAULT_REPO_URL = "https://github.com/flaxos/Pizzatorio"
 
 
 def command_exists(name: str) -> bool:
@@ -128,7 +129,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--project-dir", default=".", help="Path containing main.py")
     parser.add_argument("--mode", choices=["auto", "git", "zip"], default="auto")
-    parser.add_argument("--repo-url", help="GitHub repo URL (required for zip mode)")
+    parser.add_argument(
+        "--repo-url",
+        help=(
+            "GitHub repo URL for zip updates "
+            f"(defaults to {DEFAULT_REPO_URL} when omitted)"
+        ),
+    )
     parser.add_argument("--branch", default="main", help="Branch to pull/download from")
     parser.add_argument("--skip-update", action="store_true", help="Skip update and only launch")
     parser.add_argument("--check-only", action="store_true", help="Check update + dependencies and exit")
@@ -162,6 +169,7 @@ def prompt_update_failure_action() -> str:
 def main() -> int:
     args = parse_args()
     project_dir = Path(args.project_dir).resolve()
+    effective_repo_url = args.repo_url or DEFAULT_REPO_URL
 
     if not (project_dir / "main.py").exists():
         print(f"Error: main.py not found in {project_dir}")
@@ -172,7 +180,7 @@ def main() -> int:
     if not args.skip_update:
         success = False
         message = ""
-        missing_repo_url = False
+        using_default_repo_url = not bool(args.repo_url)
 
         if args.mode in {"auto", "git"}:
             success, message = update_with_git(project_dir, args.branch)
@@ -180,17 +188,17 @@ def main() -> int:
                 print(("[OK] " if success else "[WARN] ") + message)
 
         if args.mode in {"auto", "zip"} and not success:
-            if not args.repo_url:
-                missing_repo_url = True
-                if args.mode == "zip":
-                    print("[WARN] --repo-url is required for zip mode")
-                else:
-                    print(f"[WARN] Git update unavailable ({message}). Provide --repo-url for zip fallback.")
-            else:
-                success, message = update_with_zip(project_dir, args.repo_url, args.branch)
-                print(("[OK] " if success else "[WARN] ") + message)
+            if using_default_repo_url:
+                print(f"[INFO] --repo-url not provided; using default: {DEFAULT_REPO_URL}")
+            success, message = update_with_zip(project_dir, effective_repo_url, args.branch)
+            print(("[OK] " if success else "[WARN] ") + message)
+            if not success and using_default_repo_url:
+                print(
+                    "[WARN] Default repository URL failed. "
+                    "Retry with --repo-url https://github.com/<owner>/<repo>."
+                )
 
-        update_unresolved = not success and (missing_repo_url or bool(message))
+        update_unresolved = not success and bool(message)
 
     launch_headless = args.headless
 

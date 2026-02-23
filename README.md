@@ -43,6 +43,13 @@ A lightweight factory/automation prototype designed to run in **Pydroid on Andro
 python main.py
 ```
 
+### Agent Runtime Notes
+
+> - This project is a Pygame desktop app, not a web app.
+> - Do not use browser automation to validate gameplay loop.
+> - Use `python main.py --headless --ticks <n> --dt <d>` for automated checks.
+> - Graphical run requires a display session and manual quit.
+
 ## Run headless
 ```bash
 python main.py --headless --ticks 1200 --dt 0.1

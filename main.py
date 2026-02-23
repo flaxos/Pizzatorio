@@ -1430,12 +1430,17 @@ class GameUI:
         self._draw_sidebar()
         pygame.display.flip()
 
-    def run(self) -> None:
+    def run(self, max_seconds: float | None = None) -> None:
+        elapsed = 0.0
         while self.running:
             dt = self.clock.tick(60) / 1000.0
+            elapsed += dt
             self.handle_input()
             self.sim.tick(dt)
             self.draw()
+            if max_seconds is not None and elapsed >= max_seconds:
+                print(f"Auto-terminated: reached --max-seconds={max_seconds:.2f}")
+                break
         pygame.quit()
 
 
@@ -1471,6 +1476,12 @@ def main() -> None:
     parser.add_argument("--ticks", type=int, default=600, help="headless ticks to run")
     parser.add_argument("--dt", type=float, default=0.1, help="headless timestep")
     parser.add_argument("--load", action="store_true", help="load midgame save")
+    parser.add_argument(
+        "--max-seconds",
+        type=float,
+        default=None,
+        help="auto-exit graphical mode after this many seconds",
+    )
     args = parser.parse_args()
 
     if args.headless:
@@ -1479,7 +1490,7 @@ def main() -> None:
 
     sim = FactorySim.load() if (args.load and SAVE_FILE.exists()) else FactorySim()
     try:
-        GameUI(sim).run()
+        GameUI(sim).run(max_seconds=args.max_seconds)
     except RuntimeError as exc:
         print(f"Startup error: {exc}", file=sys.stderr)
         raise SystemExit(1)

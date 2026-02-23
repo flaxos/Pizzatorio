@@ -1,5 +1,11 @@
 # PIZZATORIO — Master Codex Prompt & AI Agent Build Plan
 
+> **Agent Runtime Notes**
+> - This project is a Pygame desktop app, not a web app.
+> - Do not use browser automation to validate gameplay loop.
+> - Use `python main.py --headless --ticks <n> --dt <d>` for automated checks.
+> - Graphical run requires a display session and manual quit.
+
 > **Purpose:** This document is the single source of truth for any AI coding agent (Codex, Claude, etc.) working on Pizzatorio. It defines the complete vision, scope, architecture, asset conventions, gameplay systems, and implementation roadmap. Every task issued to the agent should reference this document for context.
 
 ---

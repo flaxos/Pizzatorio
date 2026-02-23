@@ -148,8 +148,25 @@ class GameUI:
         self.status_message = ""
 
         self.main_sections = ["Build", "Orders", "R&D", "Commercials", "Info"]
+        self.rotation_chip_labels = {
+            0: "↑ Up",
+            1: "→ Right",
+            2: "↓ Down",
+            3: "← Left",
+        }
+        self.build_tool_configs: Dict[str, Dict[str, object]] = {
+            "conveyor": {"label": "Conveyor", "tile": CONVEYOR, "allowed_rotations": [0, 1, 2, 3]},
+            "processor": {"label": "Processor", "tile": PROCESSOR, "allowed_rotations": [0, 1, 2, 3]},
+            "oven": {"label": "Oven", "tile": OVEN, "allowed_rotations": [0, 1, 2, 3]},
+            "bot_dock": {"label": "Bot Dock", "tile": BOT_DOCK, "allowed_rotations": [0, 1, 2, 3]},
+            "assembly": {"label": "Assembly", "tile": ASSEMBLY_TABLE, "allowed_rotations": [0, 1, 2, 3]},
+            "delete": {"label": "Delete", "tile": EMPTY, "allowed_rotations": [0]},
+        }
+        self.build_label_to_tool_key = {
+            str(config["label"]): key for key, config in self.build_tool_configs.items()
+        }
         self.section_defaults = {
-            "Build": ["Belts", "Machines", "Utilities"],
+            "Build": [str(config["label"]) for config in self.build_tool_configs.values()],
             "Orders": ["Delivery", "Takeaway", "Eat-in"],
             "R&D": ["Cycle", "Unlock", "Clear"],
             "Commercials": ["Campaigns", "Promos", "Franchise"],
@@ -174,9 +191,12 @@ class GameUI:
             "L Load",
         ]
         self.build_toolbar_actions = {
-            "Belts": ["1 Conveyor", "5 Delete", "Rot -", "Rot +"],
-            "Machines": ["2 Processor", "3 Oven", "6 Assembly", "Rot -", "Rot +"],
-            "Utilities": ["4 Bot Dock", "S Save", "L Load", "C Cycle R&D", "U Unlock"],
+            "Conveyor": ["S Save", "L Load", "C Cycle R&D", "U Unlock", "Rot -", "Rot +"],
+            "Processor": ["S Save", "L Load", "C Cycle R&D", "U Unlock", "Rot -", "Rot +"],
+            "Oven": ["S Save", "L Load", "C Cycle R&D", "U Unlock", "Rot -", "Rot +"],
+            "Bot Dock": ["S Save", "L Load", "C Cycle R&D", "U Unlock", "Rot -", "Rot +"],
+            "Assembly": ["S Save", "L Load", "C Cycle R&D", "U Unlock", "Rot -", "Rot +"],
+            "Delete": ["S Save", "L Load", "C Cycle R&D", "U Unlock"],
         }
 
         self.palette = {
@@ -541,7 +561,10 @@ class GameUI:
         if section not in self.main_sections:
             return
         self.active_section = section
-        self.active_subsection = self._subsections_for(section)[0]
+        first_subsection = self._subsections_for(section)[0]
+        self.active_subsection = first_subsection
+        if section == "Build":
+            self._set_subsection(first_subsection)
 
     def _cycle_section(self) -> None:
         idx = self.main_sections.index(self.active_section)
@@ -581,9 +604,45 @@ class GameUI:
             labels.append(f"Focus: {tech}")
         return labels
 
+    def _selected_tool_key(self) -> str | None:
+        for key, config in self.build_tool_configs.items():
+            if self.selected == config["tile"]:
+                return key
+        return None
+
+    def _allowed_rotations_for_selected(self) -> List[int]:
+        key = self._selected_tool_key()
+        if key is None:
+            return [0, 1, 2, 3]
+        return list(self.build_tool_configs[key]["allowed_rotations"])
+
+    def _set_rotation(self, rotation: int) -> None:
+        allowed = self._allowed_rotations_for_selected()
+        if rotation in allowed:
+            self.rotation = rotation
+
+    def _step_rotation(self, delta: int) -> None:
+        allowed = self._allowed_rotations_for_selected()
+        if len(allowed) <= 1:
+            self.rotation = allowed[0]
+            return
+        current = allowed[0] if self.rotation not in allowed else self.rotation
+        idx = allowed.index(current)
+        self.rotation = allowed[(idx + delta) % len(allowed)]
+
+    def _normalize_rotation_for_selected_tool(self) -> None:
+        allowed = self._allowed_rotations_for_selected()
+        if self.rotation not in allowed:
+            self.rotation = allowed[0]
+
     def _set_subsection(self, subsection: str) -> None:
         if subsection in self._subsections_for(self.active_section):
             self.active_subsection = subsection
+            if self.active_section == "Build":
+                tool_key = self.build_label_to_tool_key.get(subsection)
+                if tool_key:
+                    self.selected = self.build_tool_configs[tool_key]["tile"]
+                    self._normalize_rotation_for_selected_tool()
             if self.active_section == "Orders":
                 label = subsection.split(" (", 1)[0]
                 requested_channel = label.lower().replace("-", "_")
@@ -618,7 +677,7 @@ class GameUI:
     def _ui_rects(self) -> Dict[str, List[Tuple[pygame.Rect, str]]]:
         assert self.layout is not None
         if self.layout.bottom_sheet_h <= 0 or self.bottom_sheet_state != "expanded":
-            return {"sections": [], "subsections": []}
+            return {"sections": [], "subsections": [], "tool_rotations": []}
         top_y = self.layout.bottom_sheet_y + 8
         sections = self._layout_chip_rows(
             self.main_sections,
@@ -639,7 +698,21 @@ class GameUI:
             gap_y=8,
         )
 
-        return {"sections": sections, "subsections": subs}
+        rotation_row: List[Tuple[pygame.Rect, str]] = []
+        if self.active_section == "Build":
+            rot_start = max(rect.bottom for rect, _ in subs) + 8 if subs else sub_start
+            allowed_rotations = self._allowed_rotations_for_selected()
+            rotation_row = self._layout_chip_rows(
+                [str(rot) for rot in allowed_rotations],
+                start_y=rot_start,
+                min_width=110 if self.touch_mode else 86,
+                min_height=self.touch_target_min_h,
+                gap_x=10,
+                gap_y=8,
+                label_fn=lambda label: self.rotation_chip_labels.get(int(label), label),
+            )
+
+        return {"sections": sections, "subsections": subs, "tool_rotations": rotation_row}
 
     def _toolbar_rects(self) -> List[Tuple[pygame.Rect, str]]:
         assert self.layout is not None
@@ -657,7 +730,8 @@ class GameUI:
             )
 
         ui_rects = self._ui_rects()
-        last_sub_bottom = max(rect.bottom for rect, _ in ui_rects["subsections"]) if ui_rects["subsections"] else self.layout.bottom_sheet_y + 8
+        base_rects = ui_rects["tool_rotations"] if ui_rects["tool_rotations"] else ui_rects["subsections"]
+        last_sub_bottom = max(rect.bottom for rect, _ in base_rects) if base_rects else self.layout.bottom_sheet_y + 8
         y = last_sub_bottom + 10
         actions = self._active_toolbar_actions()
         return self._layout_chip_rows(
@@ -675,26 +749,42 @@ class GameUI:
 
     def _active_toolbar_actions(self) -> List[str]:
         if self.active_section == "Build":
-            return list(self.build_toolbar_actions.get(self.active_subsection, self.toolbar_actions))
+            return list(self.build_toolbar_actions.get(self.active_subsection, ["S Save", "L Load", "C Cycle R&D", "U Unlock", "Rot -", "Rot +"]))
         return self.toolbar_actions
 
     def _handle_toolbar_action(self, label: str) -> bool:
         if label == "1 Conveyor":
             self.selected = CONVEYOR
+            self.active_section = "Build"
+            self.active_subsection = "Conveyor"
+            self._normalize_rotation_for_selected_tool()
         elif label == "2 Processor":
             self.selected = PROCESSOR
+            self.active_section = "Build"
+            self.active_subsection = "Processor"
+            self._normalize_rotation_for_selected_tool()
         elif label == "3 Oven":
             self.selected = OVEN
+            self.active_section = "Build"
+            self.active_subsection = "Oven"
+            self._normalize_rotation_for_selected_tool()
         elif label == "4 Bot Dock":
             self.selected = BOT_DOCK
+            self.active_section = "Build"
+            self.active_subsection = "Bot Dock"
+            self._normalize_rotation_for_selected_tool()
         elif label == "6 Assembly":
             self.selected = ASSEMBLY_TABLE
+            self.active_section = "Build"
+            self.active_subsection = "Assembly"
+            self._normalize_rotation_for_selected_tool()
         elif label == "5 Delete":
             self.selected = EMPTY
+            self._normalize_rotation_for_selected_tool()
         elif label == "Rot -":
-            self.rotation = (self.rotation - 1) % 4
+            self._step_rotation(-1)
         elif label == "Rot +":
-            self.rotation = (self.rotation + 1) % 4
+            self._step_rotation(1)
         elif label == "C Cycle R&D":
             self.sim.cycle_research_focus()
         elif label == "U Unlock":
@@ -742,6 +832,10 @@ class GameUI:
         for rect, subsection in ui_rects["subsections"]:
             if self._expanded_hit_rect(rect).collidepoint(mx, my):
                 self._set_subsection(subsection)
+                return True
+        for rect, rotation in ui_rects["tool_rotations"]:
+            if self._expanded_hit_rect(rect).collidepoint(mx, my):
+                self._set_rotation(int(rotation))
                 return True
         for rect, label in self._toolbar_rects():
             if self._expanded_hit_rect(rect).collidepoint(mx, my):
@@ -1062,6 +1156,9 @@ class GameUI:
             self._draw_chip(rect, section, section == self.active_section)
         for rect, subsection in ui_rects["subsections"]:
             self._draw_chip(rect, subsection, subsection == self.active_subsection)
+        for rect, rotation in ui_rects["tool_rotations"]:
+            rot_value = int(rotation)
+            self._draw_chip(rect, self.rotation_chip_labels.get(rot_value, rotation), rot_value == self.rotation)
 
         for rect, label in self._toolbar_rects():
             active = (

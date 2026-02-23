@@ -127,6 +127,16 @@ class GameUI:
         self.chip_font = self.small
         self.running = True
         self.selected = CONVEYOR
+        self.row_mode_defaults: Dict[str, bool] = {
+            "conveyor": True,
+            "processor": False,
+            "oven": False,
+            "bot_dock": False,
+            "assembly": False,
+            "delete": False,
+        }
+        self.row_mode_overrides: Dict[str, bool] = {}
+        self.row_mode_enabled = True
         self.rotation = 0
         self.pointer_down = False
         self.pointer_dragging = False
@@ -416,16 +426,38 @@ class GameUI:
     def _apply_tile_action(self, gx: int, gy: int) -> None:
         self.sim.place_tile(gx, gy, self.selected, self.rotation)
 
+    def _row_mode_label(self) -> str:
+        return f"Row: {'On' if self.row_mode_enabled else 'Off'}"
+
+    def _apply_row_mode_for_selected_tool(self) -> None:
+        tool_key = self._selected_tool_key()
+        if tool_key is None:
+            return
+        self.row_mode_enabled = self.row_mode_overrides.get(
+            tool_key,
+            self.row_mode_defaults.get(tool_key, False),
+        )
+
+    def _set_selected_build_tool(self, tile: str, subsection_label: str | None = None) -> None:
+        self.selected = tile
+        if subsection_label is not None:
+            self.active_section = "Build"
+            self.active_subsection = subsection_label
+        self._apply_row_mode_for_selected_tool()
+        self._normalize_rotation_for_selected_tool()
+
+    def _toggle_row_mode(self) -> None:
+        tool_key = self._selected_tool_key()
+        if tool_key is None:
+            return
+        self.row_mode_enabled = not self.row_mode_enabled
+        self.row_mode_overrides[tool_key] = self.row_mode_enabled
+        self._clear_pending_placement()
+
     def _can_place_tile_at(self, gx: int, gy: int, kind: str, available_money: int) -> Tuple[bool, int]:
-        if not (0 <= gx < GRID_W and 0 <= gy < GRID_H):
+        if not self.sim.can_place_tile(gx, gy, kind):
             return False, available_money
         tile = self.sim.grid[gy][gx]
-        if tile.kind in (SOURCE, SINK):
-            return False, available_money
-        if kind == OVEN and not self.sim.tech_tree.get("ovens", False):
-            return False, available_money
-        if kind == BOT_DOCK and not self.sim.tech_tree.get("bots", False):
-            return False, available_money
         if kind == EMPTY:
             return True, available_money
         if tile.kind == EMPTY:
@@ -486,10 +518,16 @@ class GameUI:
         self.placement_end_cell = None
         self.pending_cells = []
 
+    def _has_invalid_pending_cells(self) -> bool:
+        return any(not valid for _, _, valid in self.pending_cells)
+
+    def _can_confirm_pending(self) -> bool:
+        return bool(self.pending_cells) and not self._has_invalid_pending_cells()
+
     def _commit_pending_placement(self) -> None:
         if not self.pending_cells:
             return
-        if not all(valid for _, _, valid in self.pending_cells):
+        if not self._can_confirm_pending():
             self.status_message = "Placement blocked: adjust selection or cancel"
             return
         for gx, gy, _ in self.pending_cells:
@@ -627,7 +665,7 @@ class GameUI:
         self.last_drag_cell = None
 
     def _handle_grid_tap(self, pos: Tuple[int, int]) -> None:
-        if self.selected == CONVEYOR:
+        if self.row_mode_enabled:
             if self.placement_mode in {"idle", "row_pending_start", "single_pending"}:
                 self.placement_start_cell = pos
                 self.placement_end_cell = None
@@ -792,8 +830,7 @@ class GameUI:
             if self.active_section == "Build":
                 tool_key = self.build_label_to_tool_key.get(subsection)
                 if tool_key:
-                    self.selected = self.build_tool_configs[tool_key]["tile"]
-                    self._normalize_rotation_for_selected_tool()
+                    self._set_selected_build_tool(self.build_tool_configs[tool_key]["tile"])
             if self.active_section == "Orders":
                 label = subsection.split(" (", 1)[0]
                 requested_channel = label.lower().replace("-", "_")
@@ -871,7 +908,7 @@ class GameUI:
             return []
         if self.bottom_sheet_state == "compact":
             return self._layout_chip_rows(
-                ["1 Conveyor", "2 Processor", "3 Oven", "5 Delete", "Rot +"],
+                [self._row_mode_label(), "1 Conveyor", "2 Processor", "3 Oven", "5 Delete", "Rot +"],
                 start_y=self.layout.bottom_sheet_y + 8,
                 min_width=120 if self.touch_mode else 96,
                 min_height=self.touch_target_min_h,
@@ -902,8 +939,7 @@ class GameUI:
         pending_actions: List[str] = []
         if self.placement_mode != "idle":
             pending_actions.append("Cancel")
-            if self.pending_cells:
-                pending_actions.append("Confirm")
+            pending_actions.append("Confirm")
         if self.active_section == "Build":
             base_actions = list(
                 self.build_toolbar_actions.get(
@@ -911,6 +947,7 @@ class GameUI:
                     ["S Save", "L Load", "C Cycle R&D", "U Unlock", "Rot -", "Rot +"],
                 )
             )
+            base_actions.insert(0, self._row_mode_label())
             return pending_actions + base_actions
         return pending_actions + self.toolbar_actions
 
@@ -918,35 +955,24 @@ class GameUI:
         if label == "Cancel":
             self._clear_pending_placement()
         elif label == "Confirm":
+            if not self._can_confirm_pending():
+                self.status_message = "Placement blocked: adjust selection or cancel"
+                return True
             self._commit_pending_placement()
+        elif label.startswith("Row: "):
+            self._toggle_row_mode()
         elif label == "1 Conveyor":
-            self.selected = CONVEYOR
-            self.active_section = "Build"
-            self.active_subsection = "Conveyor"
-            self._normalize_rotation_for_selected_tool()
+            self._set_selected_build_tool(CONVEYOR, "Conveyor")
         elif label == "2 Processor":
-            self.selected = PROCESSOR
-            self.active_section = "Build"
-            self.active_subsection = "Processor"
-            self._normalize_rotation_for_selected_tool()
+            self._set_selected_build_tool(PROCESSOR, "Processor")
         elif label == "3 Oven":
-            self.selected = OVEN
-            self.active_section = "Build"
-            self.active_subsection = "Oven"
-            self._normalize_rotation_for_selected_tool()
+            self._set_selected_build_tool(OVEN, "Oven")
         elif label == "4 Bot Dock":
-            self.selected = BOT_DOCK
-            self.active_section = "Build"
-            self.active_subsection = "Bot Dock"
-            self._normalize_rotation_for_selected_tool()
+            self._set_selected_build_tool(BOT_DOCK, "Bot Dock")
         elif label == "6 Assembly":
-            self.selected = ASSEMBLY_TABLE
-            self.active_section = "Build"
-            self.active_subsection = "Assembly"
-            self._normalize_rotation_for_selected_tool()
+            self._set_selected_build_tool(ASSEMBLY_TABLE, "Assembly")
         elif label == "5 Delete":
-            self.selected = EMPTY
-            self._normalize_rotation_for_selected_tool()
+            self._set_selected_build_tool(EMPTY)
         elif label == "Rot -":
             self._step_rotation(-1)
         elif label == "Rot +":
@@ -1005,6 +1031,8 @@ class GameUI:
                 self._set_rotation(int(rotation))
                 return True
         for rect, label in self._toolbar_rects():
+            if label == "Confirm" and not self._can_confirm_pending():
+                continue
             if self._expanded_hit_rect(rect).collidepoint(mx, my):
                 return self._handle_toolbar_action(label)
         return False
@@ -1349,8 +1377,12 @@ class GameUI:
                 or ("Bot Dock" in label and self.selected == BOT_DOCK)
                 or ("Assembly" in label and self.selected == ASSEMBLY_TABLE)
                 or ("Delete" in label and self.selected == EMPTY)
+                or (label.startswith("Row: ") and self.row_mode_enabled)
             )
-            self._draw_chip(rect, label, active)
+            shown_label = label
+            if label == "Confirm" and not self._can_confirm_pending():
+                shown_label = "Confirm (blocked)"
+            self._draw_chip(rect, shown_label, active)
 
         toolbar_rects = self._toolbar_rects()
         text_y = self.layout.panel_y + self.panel_h - (32 if self.touch_mode else 26)

@@ -469,17 +469,22 @@ class FactorySim:
     # Building
     # ------------------------------------------------------------------
 
-    def place_tile(self, x: int, y: int, kind: str, rot: int) -> None:
+    def can_place_tile(self, x: int, y: int, kind: str) -> bool:
         if not (0 <= x < GRID_W and 0 <= y < GRID_H):
-            return
+            return False
         if self.grid[y][x].kind in (SOURCE, SINK):
+            return False
+        if kind == OVEN and not self.tech_tree.get("ovens", False):
+            return False
+        if kind == BOT_DOCK and not self.tech_tree.get("bots", False):
+            return False
+        return True
+
+    def place_tile(self, x: int, y: int, kind: str, rot: int) -> None:
+        if not self.can_place_tile(x, y, kind):
             return
         if kind == EMPTY:
             self.grid[y][x] = Tile()
-            return
-        if kind == OVEN and not self.tech_tree.get("ovens", False):
-            return
-        if kind == BOT_DOCK and not self.tech_tree.get("bots", False):
             return
         # Only charge for building on empty ground; replacing an existing tile is free
         if self.grid[y][x].kind == EMPTY:

@@ -65,11 +65,14 @@ python main.py --load
 If you installed the project from a ZIP and want a single command to update + run without touching `main.py`, use:
 
 ```bash
-# implicit default repo URL (https://github.com/flaxos/Pizzatorio)
-python mobile_updater.py --mode auto --branch main
+# implicit default repo URL (https://github.com/flaxos/Pizzatorio), automation-safe by default
+python mobile_updater.py --mode auto --branch main --non-interactive
 
-# explicit repo URL override
-python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> --branch main
+# explicit repo URL override, automation-safe by default
+python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> --branch main --non-interactive
+
+# interactive fallback prompt (only when running manually in a TTY)
+python mobile_updater.py --mode auto --branch main
 ```
 
 What it does:
@@ -83,13 +86,13 @@ What it does:
 Useful options:
 ```bash
 # only verify update path + dependencies
-python mobile_updater.py --mode auto --check-only
+python mobile_updater.py --mode auto --check-only --non-interactive
 
 # only verify update path + dependencies (explicit repo URL)
-python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> --check-only
+python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> --check-only --non-interactive
 
 # launch headless (skips pygame dependency check)
-python mobile_updater.py --headless --mode auto
+python mobile_updater.py --headless --mode auto --non-interactive
 
 # CI/automation-safe mode: disable prompts and fail if update is unresolved
 python mobile_updater.py --mode auto --non-interactive
@@ -98,10 +101,10 @@ python mobile_updater.py --mode auto --non-interactive
 python mobile_updater.py --mode auto --non-interactive --allow-run-without-update
 
 # pass extra args to main.py
-python mobile_updater.py --mode auto -- --load
+python mobile_updater.py --mode auto --non-interactive -- --load
 
 # pass extra args to main.py (explicit repo URL)
-python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> -- --load
+python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> --non-interactive -- --load
 ```
 
 ## Pydroid notes

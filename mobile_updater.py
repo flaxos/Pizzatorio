@@ -148,7 +148,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--allow-run-without-update",
         action="store_true",
-        help="In non-interactive mode, continue launch even if update could not be completed",
+        help=(
+            "In non-interactive mode (including when stdin is not a TTY), "
+            "continue launch even if update could not be completed"
+        ),
     )
     parser.add_argument("args", nargs=argparse.REMAINDER, help="Extra args passed to main.py")
     return parser.parse_args()
@@ -203,7 +206,9 @@ def main() -> int:
     launch_headless = args.headless
 
     if update_unresolved:
-        is_interactive = sys.stdin.isatty() and not args.non_interactive
+        stdin_is_tty = sys.stdin.isatty()
+        forced_non_interactive = not stdin_is_tty
+        is_interactive = stdin_is_tty and not args.non_interactive
         if is_interactive:
             action = prompt_update_failure_action()
             if action == "q":
@@ -215,10 +220,24 @@ def main() -> int:
             else:
                 print("[WARN] Proceeding without a successful update.")
         elif not args.allow_run_without_update:
+            if forced_non_interactive:
+                print("[WARN] Interactive prompt disabled because stdin is not a TTY; using non-interactive safe-exit path.")
+            elif args.non_interactive:
+                print("[WARN] Interactive prompt disabled by --non-interactive; using non-interactive safe-exit path.")
             print("[WARN] Update did not complete and launcher is non-interactive.")
             print("Use --allow-run-without-update to continue launching anyway.")
             return 4
         else:
+            if forced_non_interactive:
+                print(
+                    "[WARN] Interactive prompt disabled because stdin is not a TTY; "
+                    "using --allow-run-without-update fallback path."
+                )
+            elif args.non_interactive:
+                print(
+                    "[WARN] Interactive prompt disabled by --non-interactive; "
+                    "using --allow-run-without-update fallback path."
+                )
             print("[WARN] Proceeding without a successful update (--allow-run-without-update).")
 
     deps_ok, missing = check_requirements(headless=launch_headless)

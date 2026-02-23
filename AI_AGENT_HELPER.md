@@ -1,5 +1,9 @@
 # PIZZATORIO — Master Codex Prompt & AI Agent Build Plan
 
+> **Header Notes**
+> - Read `AI_QUICKSTART.md` first for execution tasks.
+> - Keep this file as long-term design reference only.
+
 > **Agent Runtime Notes**
 > - This project is a Pygame desktop app, not a web app.
 > - Do not use browser automation to validate gameplay loop.

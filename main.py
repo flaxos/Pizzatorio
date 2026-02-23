@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import math
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -63,13 +64,28 @@ class GameUI:
         if pygame is None:
             raise RuntimeError("pygame is required for graphical mode")
         pygame.init()
+        try:
+            pygame.display.init()
+        except pygame.error as exc:
+            raise RuntimeError(
+                "Unable to initialize the graphical display. Relaunch with --headless."
+            ) from exc
+        if not pygame.display.get_init():
+            raise RuntimeError(
+                "Display subsystem is unavailable. Relaunch with --headless."
+            )
         self.sim = sim
 
         self.display_mode = self._select_display_mode()
         self.touch_mode = self.display_mode == "mobile_fullscreen"
         self.layout: RuntimeLayout | None = None
 
-        display = pygame.display.Info()
+        try:
+            display = pygame.display.Info()
+        except pygame.error as exc:
+            raise RuntimeError(
+                "Unable to query display information. Relaunch with --headless."
+            ) from exc
         self.physical_viewport = (display.current_w, display.current_h)
 
         if self.display_mode == "mobile_fullscreen":
@@ -1462,7 +1478,11 @@ def main() -> None:
         return
 
     sim = FactorySim.load() if (args.load and SAVE_FILE.exists()) else FactorySim()
-    GameUI(sim).run()
+    try:
+        GameUI(sim).run()
+    except RuntimeError as exc:
+        print(f"Startup error: {exc}", file=sys.stderr)
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

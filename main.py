@@ -146,6 +146,10 @@ class GameUI:
         self.context_menu_radius = 64
         self.context_menu_actions = ["rotate", "delete", "inspect"]
         self.status_message = ""
+        self.placement_mode = "idle"
+        self.placement_start_cell: Tuple[int, int] | None = None
+        self.placement_end_cell: Tuple[int, int] | None = None
+        self.pending_cells: List[Tuple[int, int, bool]] = []
 
         self.main_sections = ["Build", "Orders", "R&D", "Commercials", "Info"]
         self.rotation_chip_labels = {
@@ -412,6 +416,105 @@ class GameUI:
     def _apply_tile_action(self, gx: int, gy: int) -> None:
         self.sim.place_tile(gx, gy, self.selected, self.rotation)
 
+    def _can_place_tile_at(self, gx: int, gy: int, kind: str, available_money: int) -> Tuple[bool, int]:
+        if not (0 <= gx < GRID_W and 0 <= gy < GRID_H):
+            return False, available_money
+        tile = self.sim.grid[gy][gx]
+        if tile.kind in (SOURCE, SINK):
+            return False, available_money
+        if kind == OVEN and not self.sim.tech_tree.get("ovens", False):
+            return False, available_money
+        if kind == BOT_DOCK and not self.sim.tech_tree.get("bots", False):
+            return False, available_money
+        if kind == EMPTY:
+            return True, available_money
+        if tile.kind == EMPTY:
+            from game.simulation import MACHINE_BUILD_COSTS
+
+            cost = MACHINE_BUILD_COSTS.get(kind, 0)
+            if available_money < cost:
+                return False, available_money
+            return True, available_money - cost
+        return True, available_money
+
+    def _build_pending_cells_for_single(self, cell: Tuple[int, int], selected_tool: str, rotation: int) -> List[Tuple[int, int, bool]]:
+        gx, gy = cell
+        valid, _ = self._can_place_tile_at(gx, gy, selected_tool, self.sim.money)
+        return [(gx, gy, valid)]
+
+    def _line_cells(self, start: Tuple[int, int], end: Tuple[int, int]) -> List[Tuple[int, int]]:
+        x0, y0 = start
+        x1, y1 = end
+        dx = abs(x1 - x0)
+        dy = abs(y1 - y0)
+        sx = 1 if x0 < x1 else -1
+        sy = 1 if y0 < y1 else -1
+        err = dx - dy
+        cells: List[Tuple[int, int]] = []
+        while True:
+            cells.append((x0, y0))
+            if x0 == x1 and y0 == y1:
+                break
+            e2 = 2 * err
+            if e2 > -dy:
+                err -= dy
+                x0 += sx
+            if e2 < dx:
+                err += dx
+                y0 += sy
+        return cells
+
+    def _build_pending_cells_for_row(
+        self,
+        start: Tuple[int, int],
+        end: Tuple[int, int],
+        selected_tool: str,
+        rotation: int,
+    ) -> List[Tuple[int, int, bool]]:
+        del rotation
+        cells = self._line_cells(start, end)
+        available_money = self.sim.money
+        pending: List[Tuple[int, int, bool]] = []
+        for gx, gy in cells:
+            valid, available_money = self._can_place_tile_at(gx, gy, selected_tool, available_money)
+            pending.append((gx, gy, valid))
+        return pending
+
+    def _clear_pending_placement(self) -> None:
+        self.placement_mode = "idle"
+        self.placement_start_cell = None
+        self.placement_end_cell = None
+        self.pending_cells = []
+
+    def _commit_pending_placement(self) -> None:
+        if not self.pending_cells:
+            return
+        if not all(valid for _, _, valid in self.pending_cells):
+            self.status_message = "Placement blocked: adjust selection or cancel"
+            return
+        for gx, gy, _ in self.pending_cells:
+            self.sim.place_tile(gx, gy, self.selected, self.rotation)
+        self.status_message = f"Placed {len(self.pending_cells)} tile(s)"
+        self._clear_pending_placement()
+
+    def _refresh_pending_preview(self) -> None:
+        if self.placement_mode == "idle" or self.placement_start_cell is None:
+            self.pending_cells = []
+            return
+        if self.placement_mode == "pending_confirm" and self.placement_end_cell is not None:
+            self.pending_cells = self._build_pending_cells_for_row(
+                self.placement_start_cell,
+                self.placement_end_cell,
+                self.selected,
+                self.rotation,
+            )
+            return
+        self.pending_cells = self._build_pending_cells_for_single(
+            self.placement_start_cell,
+            self.selected,
+            self.rotation,
+        )
+
     def _apply_drag_line(self, start: Tuple[int, int], end: Tuple[int, int]) -> None:
         x0, y0 = start
         x1, y1 = end
@@ -517,11 +620,55 @@ class GameUI:
                 else:
                     pos = self._screen_to_grid(x, y)
                     if pos is not None and elapsed < self.long_press_ms:
-                        self._apply_tile_action(*pos)
+                        self._handle_grid_tap(pos)
         self.pointer_down = False
         self.pointer_dragging = False
         self.pointer_mode = ""
         self.last_drag_cell = None
+
+    def _handle_grid_tap(self, pos: Tuple[int, int]) -> None:
+        if self.selected == CONVEYOR:
+            if self.placement_mode in {"idle", "row_pending_start", "single_pending"}:
+                self.placement_start_cell = pos
+                self.placement_end_cell = None
+                self.pending_cells = self._build_pending_cells_for_single(pos, self.selected, self.rotation)
+                self.placement_mode = "row_pending_end"
+                return
+            if self.placement_mode == "row_pending_end":
+                if self.placement_start_cell == pos:
+                    self._clear_pending_placement()
+                    return
+                if self.placement_start_cell is None:
+                    self.placement_start_cell = pos
+                    self.pending_cells = self._build_pending_cells_for_single(pos, self.selected, self.rotation)
+                    return
+                self.placement_end_cell = pos
+                self.pending_cells = self._build_pending_cells_for_row(
+                    self.placement_start_cell,
+                    self.placement_end_cell,
+                    self.selected,
+                    self.rotation,
+                )
+                self.placement_mode = "pending_confirm"
+                return
+            if self.placement_mode == "pending_confirm":
+                if self.placement_end_cell == pos:
+                    self._commit_pending_placement()
+                    return
+                self.placement_start_cell = pos
+                self.placement_end_cell = None
+                self.pending_cells = self._build_pending_cells_for_single(pos, self.selected, self.rotation)
+                self.placement_mode = "row_pending_end"
+                return
+            return
+
+        if self.placement_mode == "pending_confirm" and self.placement_start_cell == pos:
+            self._clear_pending_placement()
+            return
+        self.placement_start_cell = pos
+        self.placement_end_cell = None
+        self.pending_cells = self._build_pending_cells_for_single(pos, self.selected, self.rotation)
+        self.placement_mode = "pending_confirm"
 
     def _update_touch_tracking(self, ev, down: bool) -> None:
         tx, ty = self._touch_to_screen(ev)
@@ -620,20 +767,24 @@ class GameUI:
         allowed = self._allowed_rotations_for_selected()
         if rotation in allowed:
             self.rotation = rotation
+            self._refresh_pending_preview()
 
     def _step_rotation(self, delta: int) -> None:
         allowed = self._allowed_rotations_for_selected()
         if len(allowed) <= 1:
             self.rotation = allowed[0]
+            self._refresh_pending_preview()
             return
         current = allowed[0] if self.rotation not in allowed else self.rotation
         idx = allowed.index(current)
         self.rotation = allowed[(idx + delta) % len(allowed)]
+        self._refresh_pending_preview()
 
     def _normalize_rotation_for_selected_tool(self) -> None:
         allowed = self._allowed_rotations_for_selected()
         if self.rotation not in allowed:
             self.rotation = allowed[0]
+        self._clear_pending_placement()
 
     def _set_subsection(self, subsection: str) -> None:
         if subsection in self._subsections_for(self.active_section):
@@ -748,12 +899,27 @@ class GameUI:
         return rect.inflate(self.hit_slop * 2, self.hit_slop * 2)
 
     def _active_toolbar_actions(self) -> List[str]:
+        pending_actions: List[str] = []
+        if self.placement_mode != "idle":
+            pending_actions.append("Cancel")
+            if self.pending_cells:
+                pending_actions.append("Confirm")
         if self.active_section == "Build":
-            return list(self.build_toolbar_actions.get(self.active_subsection, ["S Save", "L Load", "C Cycle R&D", "U Unlock", "Rot -", "Rot +"]))
-        return self.toolbar_actions
+            base_actions = list(
+                self.build_toolbar_actions.get(
+                    self.active_subsection,
+                    ["S Save", "L Load", "C Cycle R&D", "U Unlock", "Rot -", "Rot +"],
+                )
+            )
+            return pending_actions + base_actions
+        return pending_actions + self.toolbar_actions
 
     def _handle_toolbar_action(self, label: str) -> bool:
-        if label == "1 Conveyor":
+        if label == "Cancel":
+            self._clear_pending_placement()
+        elif label == "Confirm":
+            self._commit_pending_placement()
+        elif label == "1 Conveyor":
             self.selected = CONVEYOR
             self.active_section = "Build"
             self.active_subsection = "Conveyor"
@@ -798,6 +964,7 @@ class GameUI:
             self.commercial_strategy = self.sim.commercial_strategy
             self._load_ui_settings()
             self._reflow_layout()
+            self._clear_pending_placement()
         else:
             return False
         return True
@@ -1114,6 +1281,20 @@ class GameUI:
         for y in range(GRID_H):
             for x in range(GRID_W):
                 self.draw_tile(x, y, self.sim.grid[y][x])
+
+        if self.pending_cells:
+            play_rect = pygame.Rect(self.layout.grid_x, self.layout.grid_y, self.layout.grid_px_w, self.layout.grid_px_h)
+            for gx, gy, valid in self.pending_cells:
+                px, py = self._grid_to_screen(gx, gy)
+                overlay_rect = pygame.Rect(px + 2, py + 2, max(2, cell - 4), max(2, cell - 4))
+                if not overlay_rect.colliderect(play_rect):
+                    continue
+                preview_surface = pygame.Surface((overlay_rect.w, overlay_rect.h), pygame.SRCALPHA)
+                fill = (88, 196, 132, 110) if valid else (231, 92, 92, 120)
+                edge = (155, 250, 196, 180) if valid else (255, 160, 160, 180)
+                preview_surface.fill(fill)
+                self.screen.blit(preview_surface, overlay_rect.topleft)
+                pygame.draw.rect(self.screen, edge, overlay_rect, width=2, border_radius=8)
 
         for x in range(GRID_W + 1):
             xpos, _ = self._grid_to_screen(x, 0)

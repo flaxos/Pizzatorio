@@ -240,6 +240,16 @@ class GameUI:
             "chip": (30, 38, 55),
             "chip_active": (88, 140, 236),
             "chip_active_border": (180, 215, 255),
+            "confirm_bg": (38, 126, 78),
+            "confirm_border": (82, 200, 130),
+            "confirm_disabled_bg": (35, 48, 42),
+            "confirm_disabled_border": (55, 72, 60),
+            "cancel_bg": (158, 52, 48),
+            "cancel_border": (220, 110, 100),
+            "toggle_on": (38, 126, 78),
+            "toggle_off": (55, 60, 75),
+            "submenu_bg": (16, 20, 32),
+            "submenu_border": (42, 52, 74),
         }
 
     def _select_display_mode(self) -> str:
@@ -533,6 +543,7 @@ class GameUI:
         self.placement_start_cell = None
         self.placement_end_cell = None
         self.pending_cells = []
+        self.status_message = ""
 
     def _has_invalid_pending_cells(self) -> bool:
         return any(not valid for _, _, valid in self.pending_cells)
@@ -687,14 +698,17 @@ class GameUI:
                 self.placement_end_cell = None
                 self.pending_cells = self._build_pending_cells_for_single(pos, self.selected, self.rotation)
                 self.placement_mode = "row_pending_end"
+                self.status_message = "Row start set - tap another cell to set the end"
                 return
             if self.placement_mode == "row_pending_end":
                 if self.placement_start_cell == pos:
                     self._clear_pending_placement()
+                    self.status_message = ""
                     return
                 if self.placement_start_cell is None:
                     self.placement_start_cell = pos
                     self.pending_cells = self._build_pending_cells_for_single(pos, self.selected, self.rotation)
+                    self.status_message = "Row start set - tap another cell to set the end"
                     return
                 self.placement_end_cell = pos
                 self.pending_cells = self._build_pending_cells_for_row(
@@ -704,6 +718,8 @@ class GameUI:
                     self.rotation,
                 )
                 self.placement_mode = "pending_confirm"
+                n = len(self.pending_cells)
+                self.status_message = f"{n} tile(s) selected - Confirm or Cancel"
                 return
             if self.placement_mode == "pending_confirm":
                 if self.placement_end_cell == pos:
@@ -713,16 +729,19 @@ class GameUI:
                 self.placement_end_cell = None
                 self.pending_cells = self._build_pending_cells_for_single(pos, self.selected, self.rotation)
                 self.placement_mode = "row_pending_end"
+                self.status_message = "Row start set - tap another cell to set the end"
                 return
             return
 
         if self.placement_mode == "pending_confirm" and self.placement_start_cell == pos:
             self._clear_pending_placement()
+            self.status_message = ""
             return
         self.placement_start_cell = pos
         self.placement_end_cell = None
         self.pending_cells = self._build_pending_cells_for_single(pos, self.selected, self.rotation)
         self.placement_mode = "pending_confirm"
+        self.status_message = "Tap cell again to deselect, or Confirm"
 
     def _update_touch_tracking(self, ev, down: bool) -> None:
         tx, ty = self._touch_to_screen(ev)
@@ -878,10 +897,14 @@ class GameUI:
 
         return COMMERCIALS
 
-    def _ui_rects(self) -> Dict[str, List[Tuple[pygame.Rect, str]]]:
+    def _ui_rects(self) -> Dict[str, object]:
         assert self.layout is not None
+        empty: Dict[str, object] = {
+            "sections": [], "subsections": [], "tool_rotations": [],
+            "submenu": {}, "placement_actions": [],
+        }
         if self.layout.bottom_sheet_h <= 0 or self.bottom_sheet_state != "expanded":
-            return {"sections": [], "subsections": [], "tool_rotations": []}
+            return empty
         top_y = self.layout.bottom_sheet_y + 8
         sections = self._layout_chip_rows(
             self.main_sections,
@@ -903,20 +926,73 @@ class GameUI:
         )
 
         rotation_row: List[Tuple[pygame.Rect, str]] = []
+        submenu: Dict[str, object] = {}
+        placement_actions: List[Tuple[pygame.Rect, str]] = []
+
         if self.active_section == "Build":
-            rot_start = max(rect.bottom for rect, _ in subs) + 8 if subs else sub_start
+            submenu_y = max(rect.bottom for rect, _ in subs) + 10 if subs else sub_start
             allowed_rotations = self._allowed_rotations_for_selected()
-            rotation_row = self._layout_chip_rows(
-                [str(rot) for rot in allowed_rotations],
-                start_y=rot_start,
-                min_width=110 if self.touch_mode else 86,
-                min_height=self.touch_target_min_h,
-                gap_x=10,
-                gap_y=8,
-                label_fn=lambda label: self.rotation_chip_labels.get(int(label), label),
+            chip_h = self.touch_target_min_h
+            chip_min_w = 90 if self.touch_mode else 70
+
+            # Tool preview icon (left side of submenu)
+            preview_size = chip_h
+            preview_rect = pygame.Rect(14, submenu_y, preview_size, preview_size)
+            submenu["preview"] = preview_rect
+
+            # Rotation direction chips (only when multiple rotations)
+            x_cursor = preview_rect.right + 10
+            if len(allowed_rotations) > 1:
+                for rot in allowed_rotations:
+                    label = self.rotation_chip_labels.get(rot, str(rot))
+                    short = label.split(" ", 1)[1] if " " in label else label
+                    text_w = self.chip_font.size(short)[0]
+                    w = max(chip_min_w, text_w + chip_h // 2 + 28)
+                    r = pygame.Rect(x_cursor, submenu_y, w, chip_h)
+                    rotation_row.append((r, str(rot)))
+                    x_cursor += w + 8
+
+            # Row mode toggle
+            toggle_label = "Row" if self.touch_mode else "Row Mode"
+            toggle_text_w = self.chip_font.size(toggle_label)[0]
+            track_w_est = max(10, int(chip_h * 0.3)) * 2
+            toggle_w = max(chip_min_w, toggle_text_w + track_w_est + 30)
+            toggle_rect = pygame.Rect(x_cursor + 8, submenu_y, toggle_w, chip_h)
+            submenu["row_toggle"] = toggle_rect
+
+            # Submenu panel background
+            panel_right = toggle_rect.right + 10
+            submenu["panel"] = pygame.Rect(
+                6, submenu_y - 5,
+                min(panel_right - 6, self.layout.play_w - 12),
+                chip_h + 10,
             )
 
-        return {"sections": sections, "subsections": subs, "tool_rotations": rotation_row}
+            # Placement status hint
+            if self.placement_mode == "row_pending_end":
+                submenu["status_hint"] = "Tap another cell to set the end of the row"
+            elif self.placement_mode == "pending_confirm":
+                submenu["status_hint"] = "Confirm or cancel placement"
+            elif self.placement_mode != "idle":
+                submenu["status_hint"] = "Tap a cell to begin placement"
+
+            # Placement action buttons (below submenu when placement is active)
+            if self.placement_mode != "idle":
+                action_y = submenu_y + chip_h + 14
+                action_h = chip_h
+                action_w = max(160 if self.touch_mode else 120, 0)
+                cancel_rect = pygame.Rect(14, action_y, action_w, action_h)
+                confirm_rect = pygame.Rect(cancel_rect.right + 10, action_y, action_w, action_h)
+                placement_actions.append((cancel_rect, "Cancel"))
+                placement_actions.append((confirm_rect, "Confirm"))
+
+        return {
+            "sections": sections,
+            "subsections": subs,
+            "tool_rotations": rotation_row,
+            "submenu": submenu,
+            "placement_actions": placement_actions,
+        }
 
     def _toolbar_rects(self) -> List[Tuple[pygame.Rect, str]]:
         assert self.layout is not None
@@ -934,9 +1010,25 @@ class GameUI:
             )
 
         ui_rects = self._ui_rects()
-        base_rects = ui_rects["tool_rotations"] if ui_rects["tool_rotations"] else ui_rects["subsections"]
-        last_sub_bottom = max(rect.bottom for rect, _ in base_rects) if base_rects else self.layout.bottom_sheet_y + 8
-        y = last_sub_bottom + 10
+
+        # Find the bottommost element from all submenu components
+        bottom_candidates: List[int] = []
+        for rect, _ in ui_rects.get("placement_actions", []):
+            bottom_candidates.append(rect.bottom)
+        for rect, _ in ui_rects.get("tool_rotations", []):
+            bottom_candidates.append(rect.bottom)
+        submenu = ui_rects.get("submenu", {})
+        if isinstance(submenu, dict):
+            for key in ("row_toggle", "panel"):
+                val = submenu.get(key)
+                if val is not None and hasattr(val, "bottom"):
+                    bottom_candidates.append(val.bottom)
+        if not bottom_candidates:
+            for rect, _ in ui_rects.get("subsections", []):
+                bottom_candidates.append(rect.bottom)
+
+        last_bottom = max(bottom_candidates) if bottom_candidates else self.layout.bottom_sheet_y + 8
+        y = last_bottom + 10
         actions = self._active_toolbar_actions()
         return self._layout_chip_rows(
             actions,
@@ -952,19 +1044,13 @@ class GameUI:
         return rect.inflate(self.hit_slop * 2, self.hit_slop * 2)
 
     def _active_toolbar_actions(self) -> List[str]:
+        if self.active_section == "Build":
+            # Row toggle, rotation, cancel/confirm are now in the submenu panel
+            return ["S Save", "L Load", "C Cycle R&D", "U Unlock"]
         pending_actions: List[str] = []
         if self.placement_mode != "idle":
             pending_actions.append("Cancel")
             pending_actions.append("Confirm")
-        if self.active_section == "Build":
-            base_actions = list(
-                self.build_toolbar_actions.get(
-                    self.active_subsection,
-                    ["S Save", "L Load", "C Cycle R&D", "U Unlock", "Rot -", "Rot +"],
-                )
-            )
-            base_actions.insert(0, self._row_mode_label())
-            return pending_actions + base_actions
         return pending_actions + self.toolbar_actions
 
     def _handle_toolbar_action(self, label: str) -> bool:
@@ -1046,6 +1132,20 @@ class GameUI:
             if self._expanded_hit_rect(rect).collidepoint(mx, my):
                 self._set_rotation(int(rotation))
                 return True
+
+        # Submenu interactions (row toggle, placement actions)
+        submenu = ui_rects.get("submenu", {})
+        if isinstance(submenu, dict):
+            toggle_rect = submenu.get("row_toggle")
+            if toggle_rect is not None and self._expanded_hit_rect(toggle_rect).collidepoint(mx, my):
+                self._toggle_row_mode()
+                return True
+        for rect, label in ui_rects.get("placement_actions", []):
+            if label == "Confirm" and not self._can_confirm_pending():
+                continue
+            if self._expanded_hit_rect(rect).collidepoint(mx, my):
+                return self._handle_toolbar_action(label)
+
         for rect, label in self._toolbar_rects():
             if label == "Confirm" and not self._can_confirm_pending():
                 continue
@@ -1237,6 +1337,110 @@ class GameUI:
         text_rect = text.get_rect(center=rect.center)
         self.screen.blit(text, text_rect)
 
+    def _draw_arrow_in_rect(self, cx: int, cy: int, rotation: int, size: int, color: Tuple[int, int, int]) -> None:
+        dx, dy = DIRS.get(rotation, (1, 0))
+        tip = (cx + dx * size, cy + dy * size)
+        perp_x, perp_y = dy, -dx
+        wing = int(size * 0.65)
+        base_x = cx - dx * int(size * 0.4)
+        base_y = cy - dy * int(size * 0.4)
+        points = [
+            tip,
+            (base_x + perp_x * wing, base_y + perp_y * wing),
+            (base_x - perp_x * wing, base_y - perp_y * wing),
+        ]
+        pygame.draw.polygon(self.screen, color, points)
+
+    def _draw_rotation_chip(self, rect: pygame.Rect, rot_value: int, is_active: bool) -> None:
+        bg = self.palette["chip_active"] if is_active else self.palette["chip"]
+        border = self.palette["chip_active_border"] if is_active else self.palette["panel_border"]
+        label_color = (255, 255, 255) if is_active else self.palette["text"]
+        radius = 14 if self.touch_mode else 9
+        pygame.draw.rect(self.screen, bg, rect, border_radius=radius)
+        pygame.draw.rect(self.screen, border, rect, width=2 if is_active else 1, border_radius=radius)
+        arrow_area = rect.h - 8
+        icon_cx = rect.x + 8 + arrow_area // 2
+        icon_cy = rect.centery
+        arrow_size = max(5, arrow_area // 3)
+        self._draw_arrow_in_rect(icon_cx, icon_cy, rot_value, arrow_size, label_color)
+        label = self.rotation_chip_labels.get(rot_value, str(rot_value))
+        short = label.split(" ", 1)[1] if " " in label else label
+        text = self.chip_font.render(short, True, label_color)
+        text_rect = text.get_rect(midleft=(icon_cx + arrow_size + 8, rect.centery))
+        self.screen.blit(text, text_rect)
+
+    def _draw_tool_preview(self, rect: pygame.Rect) -> None:
+        if self.selected == EMPTY:
+            bg = (140, 50, 50)
+            pygame.draw.rect(self.screen, bg, rect, border_radius=8)
+            pygame.draw.rect(self.screen, (200, 100, 90), rect, width=1, border_radius=8)
+            margin = rect.w // 4
+            pygame.draw.line(
+                self.screen, (255, 200, 200),
+                (rect.x + margin, rect.y + margin),
+                (rect.right - margin, rect.bottom - margin), 3,
+            )
+            pygame.draw.line(
+                self.screen, (255, 200, 200),
+                (rect.right - margin, rect.y + margin),
+                (rect.x + margin, rect.bottom - margin), 3,
+            )
+        else:
+            bg = self._tile_base_color(self.selected)
+            lift = tuple(min(255, c + 25) for c in bg)
+            pygame.draw.rect(self.screen, bg, rect, border_radius=8)
+            shine = pygame.Rect(rect.x + 1, rect.y + 1, rect.w - 2, rect.h // 2)
+            pygame.draw.rect(self.screen, lift, shine, border_top_left_radius=8, border_top_right_radius=8)
+            pygame.draw.rect(self.screen, (200, 210, 230), rect, width=1, border_radius=8)
+            from game.entities import Tile
+            preview_tile = Tile(kind=self.selected, rot=self.rotation)
+            self._draw_tile_icon(preview_tile, rect)
+
+    def _draw_toggle_chip(self, rect: pygame.Rect, is_on: bool, label: str) -> None:
+        bg = self.palette["toggle_on"] if is_on else self.palette["toggle_off"]
+        border = (82, 200, 130) if is_on else self.palette["panel_border"]
+        text_color = (255, 255, 255) if is_on else self.palette["muted"]
+        radius = 14 if self.touch_mode else 9
+        pygame.draw.rect(self.screen, bg, rect, border_radius=radius)
+        pygame.draw.rect(self.screen, border, rect, width=2 if is_on else 1, border_radius=radius)
+        track_h = max(10, int(rect.h * 0.3))
+        track_w = int(track_h * 2.0)
+        track_x = rect.x + 10
+        track_y = rect.centery - track_h // 2
+        track_color = (62, 176, 108) if is_on else (48, 52, 64)
+        track_rect = pygame.Rect(track_x, track_y, track_w, track_h)
+        pygame.draw.rect(self.screen, track_color, track_rect, border_radius=track_h // 2)
+        knob_r = max(4, track_h // 2)
+        knob_x = track_x + track_w - knob_r - 1 if is_on else track_x + knob_r + 1
+        pygame.draw.circle(self.screen, (240, 244, 255), (knob_x, rect.centery), knob_r)
+        text = self.chip_font.render(label, True, text_color)
+        text_rect = text.get_rect(midleft=(track_x + track_w + 8, rect.centery))
+        self.screen.blit(text, text_rect)
+
+    def _draw_action_chip(self, rect: pygame.Rect, label: str, action_type: str, enabled: bool = True) -> None:
+        if action_type == "confirm":
+            if enabled:
+                bg = self.palette["confirm_bg"]
+                border = self.palette["confirm_border"]
+            else:
+                bg = self.palette["confirm_disabled_bg"]
+                border = self.palette["confirm_disabled_border"]
+            text_color = (255, 255, 255) if enabled else (100, 120, 108)
+        elif action_type == "cancel":
+            bg = self.palette["cancel_bg"]
+            border = self.palette["cancel_border"]
+            text_color = (255, 255, 255)
+        else:
+            bg = self.palette["chip"]
+            border = self.palette["panel_border"]
+            text_color = self.palette["text"]
+        radius = 14 if self.touch_mode else 9
+        pygame.draw.rect(self.screen, bg, rect, border_radius=radius)
+        pygame.draw.rect(self.screen, border, rect, width=2, border_radius=radius)
+        text = self.chip_font.render(label, True, text_color)
+        text_rect = text.get_rect(center=rect.center)
+        self.screen.blit(text, text_rect)
+
     def _draw_sidebar(self) -> None:
         assert self.layout is not None
         if not self.landscape:
@@ -1381,9 +1585,37 @@ class GameUI:
             self._draw_chip(rect, section, section == self.active_section)
         for rect, subsection in ui_rects["subsections"]:
             self._draw_chip(rect, subsection, subsection == self.active_subsection)
+
+        # Draw enhanced submenu panel (Build section)
+        submenu = ui_rects.get("submenu", {})
+        if isinstance(submenu, dict) and "panel" in submenu:
+            panel_rect = submenu["panel"]
+            pygame.draw.rect(self.screen, self.palette["submenu_bg"], panel_rect, border_radius=12)
+            pygame.draw.rect(self.screen, self.palette["submenu_border"], panel_rect, width=1, border_radius=12)
+        if isinstance(submenu, dict) and "preview" in submenu:
+            self._draw_tool_preview(submenu["preview"])
         for rect, rotation in ui_rects["tool_rotations"]:
             rot_value = int(rotation)
-            self._draw_chip(rect, self.rotation_chip_labels.get(rot_value, rotation), rot_value == self.rotation)
+            self._draw_rotation_chip(rect, rot_value, rot_value == self.rotation)
+        if isinstance(submenu, dict) and "row_toggle" in submenu:
+            toggle_label = "Row" if self.touch_mode else "Row Mode"
+            self._draw_toggle_chip(submenu["row_toggle"], self.row_mode_enabled, toggle_label)
+
+        # Placement status hint
+        if isinstance(submenu, dict) and "status_hint" in submenu:
+            hint_text = str(submenu["status_hint"])
+            hint_y = submenu["panel"].bottom + 2 if "panel" in submenu else self.layout.panel_y + 8
+            hint_surface = self.small.render(hint_text, True, self.palette["accent"])
+            self.screen.blit(hint_surface, (14, hint_y))
+
+        # Placement action buttons (colored Cancel/Confirm)
+        for rect, label in ui_rects.get("placement_actions", []):
+            if label == "Cancel":
+                self._draw_action_chip(rect, "Cancel", "cancel")
+            elif label == "Confirm":
+                can_confirm = self._can_confirm_pending()
+                confirm_label = "Confirm" if can_confirm else "Confirm (blocked)"
+                self._draw_action_chip(rect, confirm_label, "confirm", enabled=can_confirm)
 
         for rect, label in self._toolbar_rects():
             active = (
@@ -1395,10 +1627,7 @@ class GameUI:
                 or ("Delete" in label and self.selected == EMPTY)
                 or (label.startswith("Row: ") and self.row_mode_enabled)
             )
-            shown_label = label
-            if label == "Confirm" and not self._can_confirm_pending():
-                shown_label = "Confirm (blocked)"
-            self._draw_chip(rect, shown_label, active)
+            self._draw_chip(rect, label, active)
 
         toolbar_rects = self._toolbar_rects()
         text_y = self.layout.panel_y + self.panel_h - (32 if self.touch_mode else 26)

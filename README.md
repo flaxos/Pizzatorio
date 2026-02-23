@@ -58,6 +58,10 @@ python main.py --load
 If you installed the project from a ZIP and want a single command to update + run without touching `main.py`, use:
 
 ```bash
+# implicit default repo URL (https://github.com/flaxos/Pizzatorio)
+python mobile_updater.py --mode auto --branch main
+
+# explicit repo URL override
 python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> --branch main
 ```
 
@@ -72,18 +76,24 @@ What it does:
 Useful options:
 ```bash
 # only verify update path + dependencies
+python mobile_updater.py --mode auto --check-only
+
+# only verify update path + dependencies (explicit repo URL)
 python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> --check-only
 
 # launch headless (skips pygame dependency check)
-python mobile_updater.py --headless --mode auto --repo-url https://github.com/<owner>/<repo>
+python mobile_updater.py --headless --mode auto
 
 # CI/automation-safe mode: disable prompts and fail if update is unresolved
-python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> --non-interactive
+python mobile_updater.py --mode auto --non-interactive
 
 # CI/automation override: continue launch even if update is unresolved
-python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> --non-interactive --allow-run-without-update
+python mobile_updater.py --mode auto --non-interactive --allow-run-without-update
 
 # pass extra args to main.py
+python mobile_updater.py --mode auto -- --load
+
+# pass extra args to main.py (explicit repo URL)
 python mobile_updater.py --mode auto --repo-url https://github.com/<owner>/<repo> -- --load
 ```
 

@@ -1533,93 +1533,48 @@
   ],
   "items": [
     {
-      "x": 17,
+      "x": 8,
       "y": 7,
-      "progress": 0.8000000000000002,
-      "stage": "baked",
-      "delivery_boost": 1.2,
-      "ingredient_type": "pepper",
-      "recipe_key": ""
-    },
-    {
-      "x": 16,
-      "y": 7,
-      "progress": 0.0,
-      "stage": "baked",
-      "delivery_boost": 1.2,
-      "ingredient_type": "corn",
-      "recipe_key": ""
-    },
-    {
-      "x": 14,
-      "y": 7,
-      "progress": 0.25,
-      "stage": "baked",
-      "delivery_boost": 0.0,
-      "ingredient_type": "chicken",
-      "recipe_key": ""
-    },
-    {
-      "x": 12,
-      "y": 7,
-      "progress": 0.660447974473657,
+      "progress": 0.6,
       "stage": "processed",
       "delivery_boost": 0.0,
-      "ingredient_type": "olive",
-      "recipe_key": ""
-    },
-    {
-      "x": 11,
-      "y": 7,
-      "progress": 0.25,
-      "stage": "processed",
-      "delivery_boost": 0.0,
-      "ingredient_type": "mushroom",
-      "recipe_key": ""
-    },
-    {
-      "x": 9,
-      "y": 7,
-      "progress": 0.44999999999999996,
-      "stage": "processed",
-      "delivery_boost": 0.0,
-      "ingredient_type": "tomato",
-      "recipe_key": ""
-    },
-    {
-      "x": 7,
-      "y": 7,
-      "progress": 0.7269604130940707,
-      "stage": "raw",
-      "delivery_boost": 0.0,
-      "ingredient_type": "spinach",
+      "ingredient_type": "cheese",
       "recipe_key": ""
     },
     {
       "x": 6,
       "y": 7,
-      "progress": 0.05,
+      "progress": 0.9999999999999999,
       "stage": "raw",
       "delivery_boost": 0.0,
       "ingredient_type": "tomato",
       "recipe_key": ""
     },
     {
-      "x": 4,
+      "x": 5,
       "y": 7,
-      "progress": 0.25,
+      "progress": 0.30000000000000004,
       "stage": "raw",
       "delivery_boost": 0.0,
-      "ingredient_type": "pepper",
+      "ingredient_type": "flour",
+      "recipe_key": ""
+    },
+    {
+      "x": 3,
+      "y": 7,
+      "progress": 0.7,
+      "stage": "raw",
+      "delivery_boost": 0.0,
+      "ingredient_type": "mushroom",
       "recipe_key": ""
     },
     {
       "x": 2,
       "y": 7,
-      "progress": 0.44999999999999996,
+      "progress": 0.0,
       "stage": "raw",
       "delivery_boost": 0.0,
-      "ingredient_type": "cheese",
+      "ingredient_type": "flour",
       "recipe_key": ""
     }
   ],
@@ -1627,20 +1582,27 @@
   "orders": [
     {
       "recipe_key": "margherita",
-      "remaining_sla": 9.899999999999984,
+      "remaining_sla": 5.30000000000002,
+      "total_sla": 11.0,
+      "reward": 12,
+      "channel_key": "delivery"
+    },
+    {
+      "recipe_key": "margherita",
+      "remaining_sla": 9.700000000000005,
       "total_sla": 11.0,
       "reward": 12,
       "channel_key": "delivery"
     }
   ],
-  "time": 49.9999999999993,
-  "spawn_timer": 1.4000000000000006,
-  "order_spawn_timer": 1.0500000000000003,
-  "hygiene": 78.29445985964182,
+  "time": 9.99999999999998,
+  "spawn_timer": 0.9999999999999999,
+  "order_spawn_timer": 1.2,
+  "hygiene": 100,
   "bottleneck": 0,
   "expansion_level": 1,
-  "expansion_progress": 23.4420000000002,
-  "research_points": 8.899999999999999,
+  "expansion_progress": 3.500000000000004,
+  "research_points": 0.12,
   "tech_tree": {
     "ovens": true,
     "bots": true,
@@ -1653,26 +1615,43 @@
     "second_location": false,
     "franchise_system": false
   },
-  "auto_bot_charge": 0.9999999999999506,
-  "completed": 9,
-  "ontime": 8,
-  "money": 985,
-  "waste": 8,
-  "total_revenue": 102,
-  "total_spend": 117,
+  "auto_bot_charge": 3.6000000000000023,
+  "completed": 0,
+  "ontime": 0,
+  "money": 988,
+  "waste": 0,
+  "total_revenue": 0,
+  "total_spend": 12,
   "event_log": [
-    "Factory initialized",
-    "Operating costs: -$8",
-    "Order expired: margherita (-$3)",
-    "Operating costs: -$8",
-    "Operating costs: -$8",
-    "Operating costs: -$8",
-    "Operating costs: -$8"
+    "Factory initialized"
   ],
-  "last_hygiene_event": 37.05000000000003,
-  "reputation": 53.89999999999998,
+  "last_hygiene_event": 0.0,
+  "reputation": 50.0,
   "order_channel": "delivery",
   "commercial_strategy": "campaigns",
   "research_focus": "",
-  "cost_timer": 4.263256414560601e-14
+  "cost_timer": 9.99999999999998,
+  "channel_stats": {
+    "delivery": {
+      "completed": 0,
+      "ontime": 0,
+      "late": 0,
+      "missed": 0,
+      "revenue": 0
+    },
+    "eat_in": {
+      "completed": 0,
+      "ontime": 0,
+      "late": 0,
+      "missed": 0,
+      "revenue": 0
+    },
+    "takeaway": {
+      "completed": 0,
+      "ontime": 0,
+      "late": 0,
+      "missed": 0,
+      "revenue": 0
+    }
+  }
 }

@@ -1,0 +1,77 @@
+[gd_scene load_steps=3 format=3 uid="uid://y0ts52nx6hlw"]
+
+[ext_resource type="PackedScene" path="res://src/scenes/FactoryFloor.tscn" id="1_factory"]
+[ext_resource type="Script" uid="uid://d0buvji4im2x3" path="res://src/ui/GameHUD.gd" id="2_hud"]
+
+[node name="Main" type="Node"]
+
+[node name="FactoryFloor" parent="." instance=ExtResource("1_factory")]
+
+[node name="GameHUD" type="CanvasLayer" parent="."]
+script = ExtResource("2_hud")
+
+[node name="TopBar" type="HBoxContainer" parent="GameHUD"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 48.0
+grow_horizontal = 2
+
+[node name="MoneyLabel" type="Label" parent="GameHUD/TopBar"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "$1000"
+
+[node name="ReputationLabel" type="Label" parent="GameHUD/TopBar"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "Rep: 50"
+
+[node name="ResearchLabel" type="Label" parent="GameHUD/TopBar"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "RP: 0.0"
+
+[node name="OrdersLabel" type="Label" parent="GameHUD/TopBar"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "Orders: 0"
+
+[node name="ToolLabel" type="Label" parent="GameHUD/TopBar"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Tool: Conveyor"
+
+[node name="SidePanel" type="PanelContainer" parent="GameHUD"]
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = 52.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="GameHUD/SidePanel"]
+layout_mode = 2
+
+[node name="BuildMenu" type="VBoxContainer" parent="GameHUD/SidePanel"]
+layout_mode = 2
+
+[node name="EventLog" type="RichTextLabel" parent="GameHUD/SidePanel"]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+text = "Factory initialized"
+
+[node name="NotificationLabel" type="Label" parent="GameHUD"]
+visible = false
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -60.0
+offset_right = 200.0
+grow_horizontal = 2
+grow_vertical = 0
+horizontal_alignment = 1

@@ -5,6 +5,7 @@ extends Node
 
 var current_tick: int = 0
 var tick_accumulator: float = 0.0
+var speed_multiplier: float = 1.0
 var _is_paused: bool = false
 var _headless: bool = false
 
@@ -20,7 +21,7 @@ func _physics_process(delta: float) -> void:
     if _is_paused:
         return
         
-    tick_accumulator += delta
+    tick_accumulator += delta * speed_multiplier
     
     # Process ticks deterministically
     while tick_accumulator >= GlobalConfig.TICK_RATE:
@@ -33,3 +34,6 @@ func _tick() -> void:
     
 func toggle_pause() -> void:
     _is_paused = !_is_paused
+
+func toggle_fast_forward() -> void:
+    speed_multiplier = 1.0 if speed_multiplier > 1.0 else 3.0

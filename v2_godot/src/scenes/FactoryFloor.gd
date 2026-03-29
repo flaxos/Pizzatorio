@@ -2,11 +2,16 @@ extends Node2D
 
 ## FactoryFloor — Visual representation of the grid.
 ## Listens to SimulationCore signals and draws tiles/items accordingly.
+## Supports location switching via LocationManager.
 
 const _SpriteRegistry = preload("res://src/data/SpriteRegistry.gd")
+const _DeliveryOverlay = preload("res://src/scenes/DeliveryOverlay.gd")
 
-@onready var simulation: SimulationCore = $SimulationCore
+# The simulation we are currently rendering — set by _bind_simulation()
+var simulation: SimulationCore = null
 @onready var player_controller: Node = $PlayerController
+@onready var location_manager: LocationManager = $LocationManager
+var delivery_overlay: Node2D
 
 # Grid visual nodes
 var tile_visuals: Dictionary = {}  # Vector2i -> Node2D
@@ -40,20 +45,81 @@ const ROTATION_ARROWS: Dictionary = {
 }
 
 func _ready() -> void:
+	# Create default pizza_shop location if none exist
+	if location_manager.get_location_count() == 0:
+		location_manager.add_location("pizza_shop_1", "pizza_shop", "Main Pizza Shop")
+
+	# Connect LocationManager signals
+	location_manager.location_switched.connect(_on_location_switched)
+
+	# Connect tick to LocationManager (it ticks all sims)
+	EventBus.on_tick.connect(location_manager.tick_all)
+
+	# Instantiate delivery overlay
+	delivery_overlay = _DeliveryOverlay.new()
+	delivery_overlay.name = "DeliveryOverlay"
+	add_child(delivery_overlay)
+
+	# Bind to the active simulation
+	_bind_simulation(location_manager.get_active_simulation())
+
+func _bind_simulation(sim: SimulationCore) -> void:
+	if sim == null:
+		return
+
+	# Disconnect from old simulation if any
+	_unbind_simulation()
+
+	simulation = sim
+
 	simulation.grid_changed.connect(_on_grid_changed)
 	simulation.item_spawned.connect(_on_item_spawned)
 	simulation.item_moved.connect(_on_item_moved)
 	simulation.item_removed.connect(_on_item_removed)
-	
-	# Connect simulation tick to TimeManager
-	EventBus.on_tick.connect(simulation.sim_tick)
-	
-	# Initial full grid draw
+
+	# Connect delivery overlay
+	delivery_overlay.connect_simulation(simulation)
+
+	# Full redraw
 	_draw_full_grid()
 
+func _unbind_simulation() -> void:
+	if simulation == null:
+		return
+
+	# Disconnect signals
+	if simulation.grid_changed.is_connected(_on_grid_changed):
+		simulation.grid_changed.disconnect(_on_grid_changed)
+	if simulation.item_spawned.is_connected(_on_item_spawned):
+		simulation.item_spawned.disconnect(_on_item_spawned)
+	if simulation.item_moved.is_connected(_on_item_moved):
+		simulation.item_moved.disconnect(_on_item_moved)
+	if simulation.item_removed.is_connected(_on_item_removed):
+		simulation.item_removed.disconnect(_on_item_removed)
+
+	# Clear all visuals
+	_clear_all_visuals()
+
+	simulation = null
+
+func _clear_all_visuals() -> void:
+	for pos in tile_visuals:
+		tile_visuals[pos].queue_free()
+	tile_visuals.clear()
+
+	for visual in item_visuals:
+		visual.queue_free()
+	item_visuals.clear()
+
+func _on_location_switched(_old_key: String, new_key: String) -> void:
+	var new_sim: SimulationCore = location_manager.get_simulation(new_key)
+	_bind_simulation(new_sim)
+
 func _draw_full_grid() -> void:
-	for y in range(GlobalConfig.GRID_H):
-		for x in range(GlobalConfig.GRID_W):
+	if simulation == null:
+		return
+	for y in range(simulation.grid_h):
+		for x in range(simulation.grid_w):
 			var tile_data = simulation.grid[y][x]
 			_create_tile_visual(Vector2i(x, y), tile_data["kind"], tile_data["rot"])
 
@@ -62,10 +128,10 @@ func _create_tile_visual(pos: Vector2i, kind: String, rot: int) -> void:
 	if tile_visuals.has(pos):
 		tile_visuals[pos].queue_free()
 		tile_visuals.erase(pos)
-	
+
 	var tile_node = Node2D.new()
 	tile_node.position = Vector2(pos.x * GlobalConfig.TILE_SIZE, pos.y * GlobalConfig.TILE_SIZE)
-	
+
 	# Background: sprite if available, else ColorRect fallback
 	var texture = _SpriteRegistry.get_tile_texture(kind)
 	if texture:
@@ -81,7 +147,7 @@ func _create_tile_visual(pos: Vector2i, kind: String, rot: int) -> void:
 		bg.size = Vector2(GlobalConfig.TILE_SIZE - 1, GlobalConfig.TILE_SIZE - 1)
 		bg.color = TILE_COLORS.get(kind, Color.WHITE)
 		tile_node.add_child(bg)
-	
+
 	# Direction arrow label for conveyors/machines
 	if kind in [GlobalConfig.CONVEYOR, GlobalConfig.PROCESSOR, GlobalConfig.OVEN,
 				GlobalConfig.BOT_DOCK, GlobalConfig.ASSEMBLY_TABLE,
@@ -92,7 +158,7 @@ func _create_tile_visual(pos: Vector2i, kind: String, rot: int) -> void:
 		arrow_label.add_theme_font_size_override("font_size", 18)
 		arrow_label.add_theme_color_override("font_color", Color(0.2, 0.2, 0.3, 0.7))
 		tile_node.add_child(arrow_label)
-	
+
 	# Kind label (small abbreviation)
 	if kind != GlobalConfig.EMPTY:
 		var kind_label = Label.new()
@@ -107,7 +173,7 @@ func _create_tile_visual(pos: Vector2i, kind: String, rot: int) -> void:
 		kind_label.add_theme_font_size_override("font_size", 10)
 		kind_label.add_theme_color_override("font_color", Color(0.15, 0.15, 0.25, 0.8))
 		tile_node.add_child(kind_label)
-	
+
 	add_child(tile_node)
 	tile_visuals[pos] = tile_node
 
@@ -145,7 +211,7 @@ func _on_item_moved(item_idx: int, new_pos: Vector2i) -> void:
 	if item_idx < item_visuals.size():
 		var visual = item_visuals[item_idx]
 		# Update appearance based on current stage
-		if item_idx < simulation.items.size():
+		if simulation != null and item_idx < simulation.items.size():
 			var item = simulation.items[item_idx]
 			var stage = item.get("stage", "raw")
 			if visual is Sprite2D:

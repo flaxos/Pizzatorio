@@ -14,10 +14,21 @@ signal item_moved(item_idx: int, new_pos: Vector2i)
 signal item_removed(item_idx: int)
 signal order_spawned(order_data: Dictionary)
 signal delivery_completed(recipe_key: String, reward: int)
+signal delivery_created(delivery_data: Dictionary)
+signal delivery_updated(drone_id: int, remaining: float, elapsed: float, sla: float)
 signal money_changed(new_amount: int)
 signal research_unlocked(tech_key: String)
 signal assembly_progress(pos: Vector2i, recipe_key: String, layers_complete: int, layers_total: int)
 signal assembly_completed(pos: Vector2i, recipe_key: String)
+signal commercial_activated(strategy_key: String)
+signal commercial_expired(strategy_key: String)
+signal expansion_advanced(new_level: int)
+signal item_exported(item_data: Dictionary)
+
+# --- Location identity ---
+var location_key: String = ""
+var grid_w: int = GC.GRID_W
+var grid_h: int = GC.GRID_H
 
 # --- Grid State ---
 # grid[y][x] = { "kind": String, "rot": int, "hygiene_penalty": int }
@@ -61,6 +72,10 @@ var cost_timer: float = 0.0
 var last_hygiene_event: float = 0.0
 var event_log: Array[String] = []
 
+# --- Active Commercial State ---
+var active_commercial_key: String = ""
+var active_commercial_remaining: float = 0.0
+
 # --- Registries (injected at scene load) ---
 const _IngredientRegistry = preload("res://src/data/IngredientRegistry.gd")
 const _RecipeCatalog = preload("res://src/data/RecipeCatalog.gd")
@@ -88,33 +103,43 @@ func _ready() -> void:
 	add_child(commercial_catalog)
 	order_channel_catalog = _OrderChannelCatalog.new()
 	add_child(order_channel_catalog)
-	
+
 	_initialize()
 
 func _initialize() -> void:
 	rng.seed = 7
 	money = GC.STARTING_MONEY
 	reputation = GC.REPUTATION_STARTING
-	
+
 	# Build empty grid
 	grid.clear()
-	for y in range(GC.GRID_H):
+	for y in range(grid_h):
 		var row: Array = []
-		for x in range(GC.GRID_W):
+		for x in range(grid_w):
 			row.append({"kind": GC.EMPTY, "rot": 0, "hygiene_penalty": 0})
 		grid.append(row)
-	
+
 	# Initialize tech tree
 	for tech_key in research_catalog.research:
 		tech_tree[tech_key] = false
-	
+
 	# Place static world (source, sink, initial belt run)
 	_place_static_world()
 	_log_event("Factory initialized")
-	
+
 	emit_signal("money_changed", money)
 
 func _place_static_world() -> void:
+	# Only place the default starter layout for pizza_shop (or no location key = legacy)
+	if location_key != "" and location_key.find("pizza_shop") == -1:
+		# Non-pizza-shop locations get source on left, sink on right, one belt
+		var mid_y: int = grid_h / 2
+		_set_tile(0, mid_y, GC.SOURCE, 0)
+		_set_tile(grid_w - 1, mid_y, GC.SINK, 0)
+		for x in range(1, grid_w - 1):
+			_set_tile(x, mid_y, GC.CONVEYOR, 0)
+		return
+	# Default pizza shop layout
 	_set_tile(1, 7, GC.SOURCE, 0)
 	_set_tile(18, 7, GC.SINK, 0)
 	for x in range(2, 18):
@@ -124,7 +149,7 @@ func _place_static_world() -> void:
 	_set_tile(12, 6, GC.BOT_DOCK, 1)
 
 func _set_tile(x: int, y: int, kind: String, rot: int) -> void:
-	if x < 0 or x >= GC.GRID_W or y < 0 or y >= GC.GRID_H:
+	if x < 0 or x >= grid_w or y < 0 or y >= grid_h:
 		return
 	var pos := Vector2i(x, y)
 	# Clean up state if tile is changing
@@ -150,9 +175,13 @@ func _set_tile(x: int, y: int, kind: String, rot: int) -> void:
 # ------------------------------------------------------------------
 
 func can_place_tile(x: int, y: int, kind: String) -> bool:
-	if x < 0 or x >= GC.GRID_W or y < 0 or y >= GC.GRID_H:
+	if x < 0 or x >= grid_w or y < 0 or y >= grid_h:
 		return false
 	var current_kind = grid[y][x]["kind"]
+	# Allow placing source/sink on empty tiles (admin/test feature)
+	if kind in [GC.SOURCE, GC.SINK]:
+		return current_kind == GC.EMPTY
+	# Prevent building on top of existing source/sink tiles
 	if current_kind in [GC.SOURCE, GC.SINK]:
 		return false
 	if kind == GC.OVEN and not tech_tree.get("ovens", false):
@@ -179,6 +208,72 @@ func place_tile(x: int, y: int, kind: String, rot: int) -> bool:
 	return true
 
 # ------------------------------------------------------------------
+# Admin / Testing Helpers
+# ------------------------------------------------------------------
+
+func admin_add_money(amount: int) -> void:
+	money += amount
+	emit_signal("money_changed", money)
+
+func admin_unlock_all_research() -> void:
+	for key in tech_tree:
+		tech_tree[key] = true
+		emit_signal("research_unlocked", key)
+
+func admin_advance_expansion() -> void:
+	expansion_level += 1
+	emit_signal("expansion_advanced", expansion_level)
+
+func admin_spawn_items(count: int) -> void:
+	# Find all source tile positions
+	var sources: Array[Vector2i] = []
+	for y in range(grid_h):
+		for x in range(grid_w):
+			if grid[y][x]["kind"] == GC.SOURCE:
+				sources.append(Vector2i(x, y))
+	if sources.is_empty():
+		return
+	for i in range(count):
+		var src = sources[i % sources.size()]
+		var ingredient_type = ingredient_registry.get_weighted_random_type(rng)
+		var item_data = {
+			"x": src.x, "y": src.y,
+			"progress": 0.0,
+			"stage": "raw",
+			"delivery_boost": 0.0,
+			"ingredient_type": ingredient_type,
+			"product_type": "",
+			"recipe_key": "",
+		}
+		items.append(item_data)
+		emit_signal("item_spawned", item_data)
+
+# ------------------------------------------------------------------
+# Commercial Strategy
+# ------------------------------------------------------------------
+
+## Activate a commercial strategy. Returns true if successful, false otherwise.
+func activate_commercial(strategy_key: String) -> bool:
+	if active_commercial_key != "" and active_commercial_remaining > 0.0:
+		return false  # Already have an active commercial
+	var cfg: Dictionary = commercial_catalog.get_config(strategy_key)
+	if cfg.is_empty():
+		return false
+	if not commercial_catalog.is_unlocked(strategy_key, tech_tree):
+		return false
+	var cost: int = int(cfg.get("activation_cost", 0))
+	if money < cost:
+		return false
+	money -= cost
+	total_spend += cost
+	emit_signal("money_changed", money)
+	active_commercial_key = strategy_key
+	active_commercial_remaining = GC.COMMERCIAL_DURATION
+	_log_event("Commercial activated: %s (-$%d)" % [strategy_key, cost])
+	emit_signal("commercial_activated", strategy_key)
+	return true
+
+# ------------------------------------------------------------------
 # Simulation Tick (called by TimeManager)
 # ------------------------------------------------------------------
 
@@ -187,22 +282,38 @@ func sim_tick(_tick_count: int) -> void:
 	sim_time += dt
 	spawn_timer += dt
 	order_spawn_timer += dt
-	
+
+	# Commercial timer
+	if active_commercial_key != "" and active_commercial_remaining > 0.0:
+		active_commercial_remaining -= dt
+		if active_commercial_remaining <= 0.0:
+			_log_event("Commercial expired: %s" % active_commercial_key)
+			emit_signal("commercial_expired", active_commercial_key)
+			active_commercial_remaining = 0.0
+			active_commercial_key = ""
+
 	# Item spawning
 	var effective_spawn_interval = GC.ITEM_SPAWN_INTERVAL
 	if tech_tree.get("double_spawn", false):
 		effective_spawn_interval /= GC.DOUBLE_SPAWN_INTERVAL_DIVISOR
-	
+
 	if spawn_timer >= effective_spawn_interval:
 		spawn_timer = 0.0
 		_spawn_item()
-	
-	# Order spawning
+
+	# Order spawning — apply commercial demand_multiplier and second_location
 	var effective_order_interval = GC.ORDER_SPAWN_INTERVAL
+	if tech_tree.get("second_location", false):
+		effective_order_interval *= GC.SECOND_LOCATION_SPAWN_INTERVAL_MULTIPLIER
+	if active_commercial_key != "" and active_commercial_remaining > 0.0:
+		var com_cfg: Dictionary = commercial_catalog.get_config(active_commercial_key)
+		var demand_mult: float = float(com_cfg.get("demand_multiplier", 1.0))
+		if demand_mult > 0.0:
+			effective_order_interval /= demand_mult
 	if order_spawn_timer >= effective_order_interval:
 		order_spawn_timer = 0.0
 		_spawn_order()
-	
+
 	# Operating costs
 	cost_timer += dt
 	if cost_timer >= GC.OPERATING_COST_INTERVAL:
@@ -213,18 +324,18 @@ func sim_tick(_tick_count: int) -> void:
 		total_spend += charged
 		emit_signal("money_changed", money)
 		_log_event("Operating costs: -$%d" % charged)
-	
+
 	# Hygiene fluctuation
 	var hygiene_recovery = GC.HYGIENE_RECOVERY_RATE
 	if tech_tree.get("hygiene_training", false):
 		hygiene_recovery += GC.HYGIENE_TRAINING_RECOVERY_BONUS
-	
+
 	if sim_time - last_hygiene_event > GC.HYGIENE_EVENT_COOLDOWN and rng.randf() < GC.HYGIENE_EVENT_CHANCE:
 		last_hygiene_event = sim_time
 		hygiene = clampf(hygiene - rng.randf_range(8.0, 20.0), 0.0, 100.0)
 	else:
 		hygiene = clampf(hygiene + dt * hygiene_recovery, 0.0, 100.0)
-	
+
 	# Process items
 	_process_items(dt)
 
@@ -233,10 +344,10 @@ func sim_tick(_tick_count: int) -> void:
 
 	# Process deliveries
 	_process_deliveries(dt)
-	
+
 	# Process orders (expiry)
 	_process_orders(dt)
-	
+
 	# Research
 	_process_research()
 
@@ -248,7 +359,7 @@ func _spawn_item() -> void:
 	money -= cost
 	total_spend += cost
 	emit_signal("money_changed", money)
-	
+
 	var item_data = {
 		"x": 1, "y": 7,
 		"progress": 0.0,
@@ -265,19 +376,90 @@ func _spawn_order() -> void:
 	var available = recipe_catalog.get_available_recipes(expansion_level, tech_tree)
 	if available.is_empty():
 		return
-	var key = available[rng.randi() % available.size()]
-	var recipe = recipe_catalog.get_recipe(key)
+
+	# --- Choose channel via demand_weight among unlocked channels ---
+	var unlocked_channels: Array[String] = order_channel_catalog.get_unlocked_channels(reputation)
+	if unlocked_channels.is_empty():
+		return
+	var chosen_channel: String = _weighted_pick_channel(unlocked_channels)
+
+	# Respect max_active_orders per channel
+	var channel_cfg: Dictionary = order_channel_catalog.get_config(chosen_channel)
+	var max_active: int = int(channel_cfg.get("max_active_orders", 8))
+	var channel_active: int = 0
+	for o in orders:
+		if o.get("channel_key", "") == chosen_channel:
+			channel_active += 1
+	if channel_active >= max_active:
+		return
+
+	# --- Choose recipe via demand_weight (weighted random) ---
+	var key: String = _weighted_pick_recipe(available)
+	var recipe: Dictionary = recipe_catalog.get_recipe(key)
 	if recipe.is_empty():
 		return
+
+	# Apply channel multipliers
+	var reward_mult: float = float(channel_cfg.get("reward_multiplier", 1.0))
+	var sla_mult: float = float(channel_cfg.get("sla_multiplier", 1.0))
+
+	# Apply active commercial reward multiplier
+	if active_commercial_key != "" and active_commercial_remaining > 0.0:
+		var com_cfg: Dictionary = commercial_catalog.get_config(active_commercial_key)
+		reward_mult *= float(com_cfg.get("reward_multiplier", 1.0))
+
+	# Apply second_location reward bonus
+	if tech_tree.get("second_location", false):
+		reward_mult *= (1.0 + GC.SECOND_LOCATION_REWARD_BONUS)
+
+	var base_sla: float = float(recipe.get("sla", 10.0))
+	var base_reward: int = int(recipe.get("sell_price", 12))
+
 	var order_data = {
 		"recipe_key": key,
-		"remaining_sla": float(recipe.get("sla", 10.0)),
-		"total_sla": float(recipe.get("sla", 10.0)),
-		"reward": int(recipe.get("sell_price", 12)),
-		"channel_key": order_channel,
+		"remaining_sla": base_sla * sla_mult,
+		"total_sla": base_sla * sla_mult,
+		"reward": int(base_reward * reward_mult),
+		"channel_key": chosen_channel,
 	}
 	orders.append(order_data)
 	emit_signal("order_spawned", order_data)
+
+## Pick a channel using demand_weight as weighted random selection.
+func _weighted_pick_channel(channels: Array[String]) -> String:
+	var total_w: float = 0.0
+	for ch in channels:
+		var cfg: Dictionary = order_channel_catalog.get_config(ch)
+		total_w += float(cfg.get("demand_weight", 1.0))
+	var roll: float = rng.randf() * total_w
+	var cum: float = 0.0
+	for ch in channels:
+		var cfg: Dictionary = order_channel_catalog.get_config(ch)
+		cum += float(cfg.get("demand_weight", 1.0))
+		if roll <= cum:
+			return ch
+	return channels[-1]
+
+## Pick a recipe using demand_weight as weighted random selection.
+## If a commercial strategy with demand_multiplier is active, scale weights.
+func _weighted_pick_recipe(available: Array[String]) -> String:
+	var demand_mult: float = 1.0
+	if active_commercial_key != "" and active_commercial_remaining > 0.0:
+		var com_cfg: Dictionary = commercial_catalog.get_config(active_commercial_key)
+		demand_mult = float(com_cfg.get("demand_multiplier", 1.0))
+
+	var total_w: float = 0.0
+	for key in available:
+		var recipe: Dictionary = recipe_catalog.get_recipe(key)
+		total_w += float(recipe.get("demand_weight", 1.0)) * demand_mult
+	var roll: float = rng.randf() * total_w
+	var cum: float = 0.0
+	for key in available:
+		var recipe: Dictionary = recipe_catalog.get_recipe(key)
+		cum += float(recipe.get("demand_weight", 1.0)) * demand_mult
+		if roll <= cum:
+			return key
+	return available[-1]
 
 func _process_items(dt: float) -> void:
 	var turbo: float = GC.TURBO_BELT_BONUS if tech_tree.get("turbo_belts", false) else 0.0
@@ -359,7 +541,8 @@ func _process_items(dt: float) -> void:
 						var sec_dir: Vector2i = GC.DIRS.get(sec_rot, Vector2i(1, 0))
 						var sx: int = item["x"] + sec_dir.x
 						var sy: int = item["y"] + sec_dir.y
-						if sx >= 0 and sx < GC.GRID_W and sy >= 0 and sy < GC.GRID_H:
+						if sx >= 0 and sx < grid_w and sy >= 0 and sy < grid_h \
+								and _can_accept_item_from(sx, sy, item["x"], item["y"]):
 							dir_vec = sec_dir
 						# else: fallback to primary direction
 					# Toggle for next item
@@ -368,19 +551,28 @@ func _process_items(dt: float) -> void:
 			var nx: int = item["x"] + dir_vec.x
 			var ny: int = item["y"] + dir_vec.y
 
-			if nx >= 0 and nx < GC.GRID_W and ny >= 0 and ny < GC.GRID_H:
+			if nx >= 0 and nx < grid_w and ny >= 0 and ny < grid_h:
+				# Validate that the destination tile accepts items from this direction
+				if not _can_accept_item_from(nx, ny, item["x"], item["y"]):
+					continue  # Item stays in place — destination rejects it
+
 				item["x"] = nx
 				item["y"] = ny
 				emit_signal("item_moved", i, Vector2i(nx, ny))
 
 				# Check if we reached a sink
 				if grid[ny][nx]["kind"] == GC.SINK:
-					# Resolve order
+					# Resolve order (only locations with orders)
 					var order = _resolve_order_for_item(item)
 					if order != null:
 						_enqueue_delivery(order)
+					else:
+						# Emit item_exported for transport system to pick up
+						emit_signal("item_exported", item.duplicate())
 					items_to_remove.append(i)
 			else:
+				# Item fell off grid — waste
+				_handle_waste(item)
 				items_to_remove.append(i)
 
 	# Remove items in reverse to preserve indices
@@ -388,6 +580,59 @@ func _process_items(dt: float) -> void:
 	for idx in items_to_remove:
 		items.remove_at(idx)
 		emit_signal("item_removed", idx)
+
+# ------------------------------------------------------------------
+# Destination acceptance check
+# ------------------------------------------------------------------
+
+## Returns true if a tile at (dx, dy) will accept an item arriving from (sx, sy).
+## Machines and sinks accept from any direction. Conveyor-type tiles reject items
+## arriving from their output side (i.e. backwards onto the belt). Inserters are
+## never pushed onto — they pull items themselves.
+func _can_accept_item_from(dx: int, dy: int, sx: int, sy: int) -> bool:
+	var dest_tile: Dictionary = grid[dy][dx]
+	var dest_kind: String = dest_tile["kind"]
+
+	# Machines, sinks, and empty tiles accept items from any direction
+	if dest_kind in [GC.PROCESSOR, GC.OVEN, GC.ASSEMBLY_TABLE, GC.BOT_DOCK,
+					  GC.SINK, GC.EMPTY, GC.SOURCE]:
+		return true
+
+	# Conveyor-type tiles: reject items arriving from the output side (backwards)
+	if dest_kind in [GC.CONVEYOR, GC.SPLITTER, GC.PRIORITY_LANE]:
+		var dest_dir: Vector2i = GC.DIRS.get(dest_tile["rot"], Vector2i(1, 0))
+		# arrival_dir is the vector from source to destination
+		var arrival_dir := Vector2i(dx - sx, dy - sy)
+		# If the item arrives from the direction the belt outputs to, block it.
+		# That means: the belt points in direction dest_dir, and the item is
+		# arriving from -dest_dir (the output end).
+		if arrival_dir == -dest_dir:
+			return false
+		return true
+
+	# Inserters handle their own item pulling — don't push items onto them
+	if dest_kind == GC.INSERTER:
+		return false
+
+	# Unknown tile kind — allow by default
+	return true
+
+# ------------------------------------------------------------------
+# Waste handling
+# ------------------------------------------------------------------
+
+## Handle a wasted item: increment waste counter and apply precision_cooking refund.
+func _handle_waste(item: Dictionary) -> void:
+	waste += 1
+	if tech_tree.get("precision_cooking", false):
+		var ingredient_type: String = item.get("ingredient_type", "")
+		if ingredient_type != "":
+			var ingredient_cost: int = ingredient_registry.get_purchase_cost(ingredient_type)
+			var refund: int = int(float(ingredient_cost) * GC.PRECISION_COOKING_WASTE_REFUND)
+			if refund > 0:
+				money += refund
+				total_revenue += refund
+				emit_signal("money_changed", money)
 
 # ------------------------------------------------------------------
 # Inserters
@@ -415,9 +660,9 @@ func _process_inserters(dt: float) -> void:
 		var dest_pos: Vector2i = pos + forward
 
 		# Bounds check
-		if source_pos.x < 0 or source_pos.x >= GC.GRID_W or source_pos.y < 0 or source_pos.y >= GC.GRID_H:
+		if source_pos.x < 0 or source_pos.x >= grid_w or source_pos.y < 0 or source_pos.y >= grid_h:
 			continue
-		if dest_pos.x < 0 or dest_pos.x >= GC.GRID_W or dest_pos.y < 0 or dest_pos.y >= GC.GRID_H:
+		if dest_pos.x < 0 or dest_pos.x >= grid_w or dest_pos.y < 0 or dest_pos.y >= grid_h:
 			continue
 
 		# Find an item on the source tile
@@ -460,7 +705,7 @@ func _handle_assembly_table(item: Dictionary, _item_idx: int) -> bool:
 		var matched_recipe := _find_recipe_for_product(item_product)
 		if matched_recipe == "":
 			# No recipe starts with this product; waste the item
-			waste += 1
+			_handle_waste(item)
 			_log_event("Assembly waste: %s (no matching recipe)" % item_product)
 			return true
 		var required = recipe_catalog.get_required_products(matched_recipe)
@@ -479,7 +724,7 @@ func _handle_assembly_table(item: Dictionary, _item_idx: int) -> bool:
 
 	if idx == -1:
 		# Item doesn't match any remaining need; waste it
-		waste += 1
+		_handle_waste(item)
 		_log_event("Assembly waste: %s (not needed for %s)" % [item_product, state["recipe_key"]])
 		return true
 
@@ -535,19 +780,31 @@ func _find_recipe_for_product(product_type: String) -> String:
 func _resolve_order_for_item(item: Dictionary):
 	if orders.is_empty():
 		return null
-	
+
 	if item.get("recipe_key", "") != "":
 		for i in range(orders.size()):
 			if orders[i]["recipe_key"] == item["recipe_key"]:
 				return orders.pop_at(i)
 		return null
-	
+
 	# Try to match by ingredient type
 	if orders.size() == 1:
 		return orders.pop_at(0)
 	return orders.pop_at(0) if not orders.is_empty() else null
 
 func _enqueue_delivery(order: Dictionary) -> void:
+	# --- Expansion progress on delivery ---
+	var expansion_bonus: float = GC.EXPANSION_DELIVERY_BONUS
+	if tech_tree.get("franchise_system", false):
+		expansion_bonus *= GC.FRANCHISE_EXPANSION_BONUS
+	expansion_progress += expansion_bonus
+	var expansion_needed: float = GC.EXPANSION_BASE_NEEDED * float(expansion_level)
+	if expansion_progress >= expansion_needed:
+		expansion_progress -= expansion_needed
+		expansion_level += 1
+		_log_event("Expansion advanced to tier %d!" % expansion_level)
+		emit_signal("expansion_advanced", expansion_level)
+
 	if order.get("channel_key", "") == "eat_in":
 		completed += 1
 		ontime += 1
@@ -557,7 +814,7 @@ func _enqueue_delivery(order: Dictionary) -> void:
 		emit_signal("delivery_completed", order["recipe_key"], order["reward"])
 		emit_signal("money_changed", money)
 		return
-	
+
 	var travel = rng.randf_range(3.5, 7.5)
 	var delivery = {
 		"mode": "drone",
@@ -570,13 +827,17 @@ func _enqueue_delivery(order: Dictionary) -> void:
 		"channel_key": order.get("channel_key", "delivery"),
 	}
 	deliveries.append(delivery)
+	emit_signal("delivery_created", delivery)
 
 func _process_deliveries(dt: float) -> void:
 	var completed_indices: Array[int] = []
 	for i in range(deliveries.size()):
 		deliveries[i]["remaining"] -= dt
 		deliveries[i]["elapsed"] += dt
-		
+		var _drone_id: int = deliveries[i].get("_drone_id", -1)
+		if _drone_id >= 0:
+			emit_signal("delivery_updated", _drone_id, deliveries[i]["remaining"], deliveries[i]["elapsed"], deliveries[i]["sla"])
+
 		if deliveries[i]["remaining"] <= 0.0:
 			var d = deliveries[i]
 			completed += 1
@@ -587,14 +848,18 @@ func _process_deliveries(dt: float) -> void:
 				money += d["reward"]
 				total_revenue += d["reward"]
 			else:
+				# Apply priority_dispatch: reduce late penalty
+				var late_mult: float = GC.LATE_DELIVERY_PENALTY
+				if tech_tree.get("priority_dispatch", false):
+					late_mult *= GC.PRIORITY_DISPATCH_LATE_MULTIPLIER
 				reputation = clampf(reputation - GC.REPUTATION_LOSS_LATE, 0.0, 100.0)
-				var late_pay = int(d["reward"] * GC.LATE_DELIVERY_PENALTY)
+				var late_pay = int(d["reward"] * late_mult)
 				money += late_pay
 				total_revenue += late_pay
 			emit_signal("delivery_completed", d["recipe_key"], d["reward"])
 			emit_signal("money_changed", money)
 			completed_indices.append(i)
-	
+
 	completed_indices.reverse()
 	for idx in completed_indices:
 		deliveries.remove_at(idx)
@@ -606,7 +871,7 @@ func _process_orders(dt: float) -> void:
 		if orders[i]["remaining_sla"] <= 0.0:
 			_mark_order_missed(orders[i])
 			expired_indices.append(i)
-	
+
 	expired_indices.reverse()
 	for idx in expired_indices:
 		orders.remove_at(idx)
@@ -630,7 +895,7 @@ func _process_research() -> void:
 				emit_signal("research_unlocked", research_focus)
 				research_focus = ""
 		return
-	
+
 	# Auto-unlock if no focus
 	for tech_key in research_catalog.research:
 		if tech_tree.get(tech_key, false):
@@ -653,6 +918,9 @@ func _log_event(message: String) -> void:
 
 func to_dict() -> Dictionary:
 	return {
+		"location_key": location_key,
+		"grid_w": grid_w,
+		"grid_h": grid_h,
 		"grid": grid.duplicate(true),
 		"items": items.duplicate(true),
 		"orders": orders.duplicate(true),
@@ -677,9 +945,17 @@ func to_dict() -> Dictionary:
 		"assembly_state": _serialize_assembly_state(),
 		"splitter_toggles": _serialize_vec2i_dict(splitter_toggles),
 		"inserter_timers": _serialize_vec2i_dict(inserter_timers),
+		"active_commercial_key": active_commercial_key,
+		"active_commercial_remaining": active_commercial_remaining,
 	}
 
 func load_from_dict(data: Dictionary) -> void:
+	if data.has("location_key"):
+		location_key = str(data["location_key"])
+	if data.has("grid_w"):
+		grid_w = int(data["grid_w"])
+	if data.has("grid_h"):
+		grid_h = int(data["grid_h"])
 	if data.has("grid"):
 		grid = data["grid"]
 	if data.has("money"):
@@ -690,6 +966,22 @@ func load_from_dict(data: Dictionary) -> void:
 		reputation = float(data["reputation"])
 	if data.has("research_points"):
 		research_points = float(data["research_points"])
+	if data.has("expansion_level"):
+		expansion_level = int(data["expansion_level"])
+	if data.has("expansion_progress"):
+		expansion_progress = float(data["expansion_progress"])
+	if data.has("waste"):
+		waste = int(data["waste"])
+	if data.has("completed"):
+		completed = int(data["completed"])
+	if data.has("ontime"):
+		ontime = int(data["ontime"])
+	if data.has("sim_time"):
+		sim_time = float(data["sim_time"])
+	if data.has("active_commercial_key"):
+		active_commercial_key = str(data["active_commercial_key"])
+	if data.has("active_commercial_remaining"):
+		active_commercial_remaining = float(data["active_commercial_remaining"])
 	if data.has("assembly_state"):
 		_deserialize_assembly_state(data["assembly_state"])
 	if data.has("splitter_toggles"):

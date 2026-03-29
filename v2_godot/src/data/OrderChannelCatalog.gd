@@ -1,0 +1,70 @@
+class_name OrderChannelCatalog
+extends Node
+
+## Order channel catalog ported from order_channel_catalog.py
+
+var channels: Dictionary = {}
+
+func _ready() -> void:
+	_load_defaults()
+
+func _load_defaults() -> void:
+	channels = {
+		"delivery": {
+			"display_name": "Delivery",
+			"reward_multiplier": 1.0,
+			"sla_multiplier": 1.0,
+			"demand_weight": 1.0,
+			"delivery_modes": ["drone", "scooter"],
+			"min_reputation": 0.0,
+			"min_recipe_difficulty": 1,
+			"max_recipe_difficulty": 5,
+			"max_active_orders": 8,
+			"late_reward_multiplier": 1.0,
+			"missed_order_penalty_multiplier": 1.0,
+			"spawn_interval_multiplier": 1.0,
+		},
+		"takeaway": {
+			"display_name": "Takeaway",
+			"reward_multiplier": 0.85,
+			"sla_multiplier": 1.35,
+			"demand_weight": 0.75,
+			"delivery_modes": ["scooter"],
+			"min_reputation": 10.0,
+			"min_recipe_difficulty": 1,
+			"max_recipe_difficulty": 3,
+			"max_active_orders": 6,
+			"late_reward_multiplier": 0.9,
+			"missed_order_penalty_multiplier": 0.8,
+			"spawn_interval_multiplier": 0.95,
+		},
+		"eat_in": {
+			"display_name": "Eat-in",
+			"reward_multiplier": 1.15,
+			"sla_multiplier": 1.2,
+			"demand_weight": 0.65,
+			"delivery_modes": ["scooter"],
+			"min_reputation": 25.0,
+			"min_recipe_difficulty": 2,
+			"max_recipe_difficulty": 5,
+			"max_active_orders": 4,
+			"late_reward_multiplier": 0.7,
+			"missed_order_penalty_multiplier": 1.25,
+			"spawn_interval_multiplier": 1.15,
+		},
+	}
+
+func is_unlocked(channel: String, reputation: float) -> bool:
+	if channel not in channels:
+		return false
+	return reputation >= float(channels[channel].get("min_reputation", 0.0))
+
+func get_config(channel: String) -> Dictionary:
+	return channels.get(channel, {})
+
+func get_unlocked_channels(reputation: float) -> Array[String]:
+	var unlocked: Array[String] = []
+	for channel in channels:
+		if is_unlocked(channel, reputation):
+			unlocked.append(channel)
+	return unlocked

@@ -23,3 +23,7 @@ env/
 # Game save files (keep midgame_save.json as example, ignore user saves)
 *_save.json
 !midgame_save.json
+
+# Godot
+.godot/
+*.import

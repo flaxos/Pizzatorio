@@ -41,6 +41,11 @@ custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 text = "Tool: Conveyor"
 
+[node name="LocationLabel" type="Label" parent="GameHUD/TopBar"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Main Pizza Shop"
+
 [node name="SidePanel" type="PanelContainer" parent="GameHUD"]
 anchors_preset = 11
 anchor_left = 1.0

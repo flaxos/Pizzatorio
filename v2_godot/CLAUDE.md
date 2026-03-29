@@ -4,109 +4,130 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Godot 4.4 port of Pizzatorio — a factory/automation game (Factorio meets pizza tycoon). Refactored from a Pygame-based Python prototype in the parent directory. Multi-stage pizza production: ingredients flow through conveyors, processors, ovens, and bot docks to fulfill customer orders.
+Pizzatorio — a factory-automation tycoon where you build and automate pizza production lines, then expand vertically up the supply chain into a food empire. Core inspiration: **Factorio mechanics** (belts, splitters, inserters, logistics puzzles) + **Transport Tycoon / OpenTTD** (network building, delivery routing) + **tycoon/empire sim economics** (R&D, franchising, supply chain ownership).
 
-## Project Status
+## Game Vision
 
-**Phase: Early Godot Port — Scaffold Complete, Visuals Placeholder**
+You start as a single pizza shop. Raw ingredients arrive, you assemble pizzas on belts, and deliver via drones/robots to meet customer demand. As you grow:
 
-The Python prototype (`~/games/pizzatorio/`) has 199 passing tests and complete game logic, but graphics are colored rectangles. The decision was made to migrate to Godot for proper game engine capabilities (rendering, physics, sprite system, export targets).
+1. **Pizza Shop** — Place conveyors, processors, ovens, assembly tables. Fulfill orders under SLA pressure.
+2. **Supply Chain** — You run out of room. Build a dough factory offsite. Ship raw ingredients in, processed products out. Same for sauce, cheese processing.
+3. **Vertical Integration** — Acquire farms (wheat, tomatoes). Automate harvesting with robots. Raw materials flow from your farms → your factories → your pizza shops.
+4. **Empire** — Sell franchises, take over competitor stores, run multiple factories and shops. Control the entire ingredient-to-delivery pipeline.
 
-### What's Done (ported to Godot)
-- SimulationCore with full tick-based game loop (items, orders, deliveries, research, economy, hygiene)
-- All 5 data catalogs (ingredients, recipes, research, order channels, commercials)
-- Grid-based factory floor renderer with color-coded tiles and item stage visualization
-- Player input: build tools (1-6), rotation, camera pan/zoom, save/load
-- HUD overlay (money, reputation, research, orders, event log, notifications)
-- Headless test runner (partially working — has a SceneTree init bug to fix)
-- Autoload singletons (GlobalConfig, EventBus, TimeManager)
+**The fun is the Factorio part** — the logistics puzzle of routing ingredients through splitters, mergers, priority lanes, inserters, and assembly stations. R&D progressively automates everything until you control all ingredients for every production line.
 
-### What's NOT Done Yet
-- **Sprites/art assets** — everything is still colored rectangles (no sprites in `assets/` yet)
-- **Assembly table mechanics** — recipe assembly (combining processed ingredients) not fully wired
-- **Advanced conveyor logic** — splitters, inserters, priority lanes from the design doc
-- **Multi-factory expansion** — single factory floor only
-- **Audio** — completely silent
-- **Polish** — no animations, particles, or visual feedback beyond basic tweens
-- **Export/packaging** — no export presets configured
-- **Test runner fix** — `test_headless.gd` has a null SceneTree bug at init
+**Delivery** uses flying drones and delivery robots — not human drivers. This is a robotic automated food delivery chain.
 
 ## Workflow
 
-This project uses a combo of **Claude Code** and **Google Antigravity** (image generation for sprites). Claude handles code/architecture, Antigravity handles sprite asset creation.
+**Claude Code** handles code, architecture, and game logic. **Google Antigravity** generates pixel art sprites and visual assets. Both work in tandem — sprites drop into `assets/sprites/` and SpriteRegistry picks them up automatically.
 
 ## Commands
 
 ```bash
 # Run the game
-godot --path /home/flax/games/pizzatorio/v2_godot
+~/bin/godot --path ~/games/pizzatorio/v2_godot
 
-# Run headless tests (no display needed)
-godot --headless --script res://test_headless.gd --path /home/flax/games/pizzatorio/v2_godot
+# Run headless tests
+~/bin/godot --headless --script res://test_headless.gd
+
+# Generate placeholder sprites
+python3 tools/generate_placeholders.py
 ```
+
+## Project Status
+
+**Phase: Core Mechanics — Foundation Complete, Systems Need Wiring**
+
+### Working
+- SimulationCore: tick-based engine with items, orders, deliveries, economy, hygiene, research
+- 11 tile types: conveyor, processor, oven, bot_dock, assembly_table, splitter, inserter, priority_lane, source, sink, empty
+- Assembly table: multi-ingredient pizza assembly with recipe matching
+- 21 ingredient types with weighted spawning and processing chains
+- 3 recipes (margherita, pepperoni, veggie) with tier-based unlocking
+- 10-node tech tree with prerequisite chains
+- Sprite pipeline with Antigravity-generated pixel art + SpriteRegistry
+- Save/load, headless tests passing, HUD overlay
+
+### Defined But Not Wired
+These systems have data catalogs and config values but the simulation logic doesn't use them yet:
+- **Order channel modifiers** — reward/SLA multipliers exist in OrderChannelCatalog but never applied
+- **Commercial strategies** — 3 strategies defined (campaigns, promos, franchise) but no activation/effect logic
+- **Expansion tiers** — expansion_level field exists but never progresses; recipe unlock tiers defined but gated on a value that never changes
+- **Many research effects** — turbo_oven, precision_cooking, priority_dispatch bonuses defined in GlobalConfig but not integrated
+- **Demand weighting** — recipes have demand_weight but orders spawn uniformly
+- **Bot auto-delivery** — auto_bot_charge field exists but no autonomous bot behavior
+- **Waste refund** — waste counted but precision_cooking refund never applied
+
+### Not Yet Built
+- **Multi-location** — only one factory floor (need: farm, sauce factory, dough factory, multiple shops)
+- **Supply chain network** — no inter-location transport of goods
+- **Franchise/takeover system** — no selling or acquiring locations
+- **Drone/robot delivery simulation** — deliveries are just timers, no visual pathing
+- **More recipes** — need 15-20+ for depth
+- **Audio** — completely silent
+- **Build mode feedback** — no green/red placement preview
+- **Research/channel/commercial UI** — no player-facing panels for these systems
 
 ## Architecture
 
 ### Core Principle: Decoupled Simulation
 
-`SimulationCore.gd` contains **zero rendering logic**. It is a pure tick-based engine that emits signals consumed by visual nodes. This mirrors the Python version's "headless-first" design. **Do not add rendering/UI code to SimulationCore or data classes.**
+`SimulationCore.gd` contains **zero rendering logic**. Pure tick-based engine that emits signals. **Do not add rendering/UI code to SimulationCore or data classes.**
 
-### Autoload Singletons (registered in project.godot)
+### Autoload Singletons
 
-- **GlobalConfig** — All game constants and tuning values (grid size, costs, speeds, thresholds). Primary tuning surface.
-- **EventBus** — Centralized signal bus for cross-system communication (tick events, notifications, build requests).
-- **TimeManager** — Fixed-rate deterministic tick driver (0.5s/tick). Supports `--headless` CLI flag for 10x speed.
+- **GlobalConfig** — All constants and tuning values. Primary tuning surface.
+- **EventBus** — Signal bus for cross-system communication.
+- **TimeManager** — Fixed-rate tick driver (0.5s/tick). `--headless` flag for 10x speed.
 
 ### Scene Tree
 
 ```
 Main (Node)
-├── FactoryFloor (Node2D)          — Visual grid renderer, listens to SimulationCore signals
-│   ├── SimulationCore (Node)      — Headless game engine, all game state lives here
-│   └── PlayerController (Node2D)  — Input handling: build, rotate, camera pan/zoom, save/load
-└── GameHUD (CanvasLayer)          — UI overlay: money, reputation, research, orders, event log
+├── FactoryFloor (Node2D)          — Visual grid renderer
+│   ├── SimulationCore (Node)      — Headless game engine, all state lives here
+│   └── PlayerController (Node2D)  — Input: build (1-9), rotate (R), camera, save/load
+└── GameHUD (CanvasLayer)          — UI overlay: money, rep, research, orders, event log
 ```
 
 ### Data Layer (`src/data/`)
 
-All game content is data-driven via catalog/registry classes (all extend `Resource` or are static):
+Data-driven catalogs — all game content defined as data, not code:
 
-- **IngredientRegistry** — 21 ingredient types with spawn weights, costs, and processing chains
-- **RecipeCatalog** — Pizza recipes gated by expansion level and tech tree
-- **ResearchCatalog** — 10-node tech tree with prerequisite chains
-- **OrderChannelCatalog** — Delivery/takeaway/eat-in channels with SLA and reward tuning
-- **CommercialCatalog** — Marketing campaign strategies
+| File | Purpose |
+|------|---------|
+| IngredientRegistry.gd | 21 ingredients with spawn weights, costs, processing chains |
+| RecipeCatalog.gd | Pizza recipes with components, pricing, tier unlocks |
+| ResearchCatalog.gd | 10-node tech tree with prerequisites and costs |
+| OrderChannelCatalog.gd | Delivery/takeaway/eat-in with SLA and reward modifiers |
+| CommercialCatalog.gd | Marketing strategies with demand/reward multipliers |
+| SpriteRegistry.gd | Texture lookup with per-ingredient and per-stage sprites |
 
 ### Signal Flow
 
 ```
 TimeManager ──on_tick──→ SimulationCore.sim_tick()
-SimulationCore ──grid_changed, item_spawned/moved/removed──→ FactoryFloor (visual updates)
-SimulationCore ──money_changed, order_spawned, etc──→ GameHUD (UI updates)
-PlayerController ──place_tile()──→ SimulationCore (state mutations)
-EventBus ──show_notification──→ GameHUD (cross-cutting events)
+SimulationCore ──grid/item/economy signals──→ FactoryFloor + GameHUD
+PlayerController ──place_tile()──→ SimulationCore
+EventBus ──show_notification──→ GameHUD
 ```
 
 ### Save System
 
-JSON serialization via `SimulationCore.to_dict()` / `load_from_dict()`. PlayerController handles Ctrl+S/Ctrl+L.
-
-## Headless Testing
-
-`test_headless.gd` runs as a standalone SceneTree (bypasses autoloads). It manually instantiates GlobalConfig and SimulationCore, then verifies grid placement, tile building with cost deduction, tick execution, and serialization. Assertions print pass/fail and exit with code 0/1.
+JSON via `SimulationCore.to_dict()` / `load_from_dict()`. Ctrl+S / Ctrl+L.
 
 ## Agents (`.claude/agents/`)
 
-Task-specific agent definitions for the next implementation phases. Run order matters — some depend on others:
-
-| Agent | Purpose | Dependencies |
-|-------|---------|--------------|
-| `fix-headless-tests` | Fix SceneTree null bug in test runner | None — do this first |
-| `sprite-pipeline` | Create `assets/sprites/` structure + placeholder PNGs + SpriteRegistry.gd | None |
-| `wire-sprites` | Replace ColorRects in FactoryFloor with Sprite2D nodes | Requires `sprite-pipeline` |
-| `assembly-table` | Multi-ingredient pizza assembly on Assembly Tables | None (core gameplay) |
-| `advanced-conveyors` | Splitters, inserters, priority lanes | None (but test after `assembly-table`) |
+| Agent | Purpose | Status |
+|-------|---------|--------|
+| `fix-headless-tests` | Fix SceneTree init bug | Done |
+| `sprite-pipeline` | Asset directory + SpriteRegistry | Done |
+| `wire-sprites` | Sprite2D rendering in FactoryFloor | Done |
+| `assembly-table` | Multi-ingredient assembly mechanics | Done |
+| `advanced-conveyors` | Splitters, inserters, priority lanes | Done |
 
 ## Relationship to Python Version
 
-The parent directory (`/home/flax/games/pizzatorio/`) contains the original Pygame version. The v2_godot port preserves the same game design, data structures, and simulation logic. The parent's `CLAUDE.md`, `AI_AGENT_HELPER.md`, and `AI_QUICKSTART.md` document the game design vision and are useful context for understanding intended behavior.
+Parent directory (`~/games/pizzatorio/`) has the original Pygame prototype (199 tests, complete but basic). The Godot port supersedes it. Parent's `AI_AGENT_HELPER.md` has the full ingredient table, recipe specs, and research tree design — still valid as reference.

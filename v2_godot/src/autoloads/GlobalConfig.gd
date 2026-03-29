@@ -122,5 +122,48 @@ const SECOND_LOCATION_SPAWN_INTERVAL_MULTIPLIER: float = 0.85
 const SECOND_LOCATION_ORDER_CAPACITY_BONUS: int = 2
 const FRANCHISE_EXPANSION_BONUS: float = 2.0
 
+# ---------------------------------------------------------------------------
+# Commercial strategy tuning
+# ---------------------------------------------------------------------------
+const COMMERCIAL_DURATION: float = 30.0
+
+# ---------------------------------------------------------------------------
+# Location types for multi-location architecture
+# ---------------------------------------------------------------------------
+const LOCATION_TYPES: Dictionary = {
+	"pizza_shop": {
+		"display_name": "Pizza Shop",
+		"grid_w": 20, "grid_h": 15,
+		"allowed_tiles": ["conveyor", "processor", "oven", "bot_dock", "assembly_table",
+						  "splitter", "inserter", "priority_lane", "source", "sink"],
+		"has_orders": true,
+		"unlock_cost": 0,
+	},
+	"dough_factory": {
+		"display_name": "Dough Factory",
+		"grid_w": 16, "grid_h": 12,
+		"allowed_tiles": ["conveyor", "processor", "splitter", "inserter",
+						  "priority_lane", "source", "sink"],
+		"has_orders": false,
+		"unlock_cost": 500,
+	},
+	"sauce_plant": {
+		"display_name": "Sauce Plant",
+		"grid_w": 16, "grid_h": 12,
+		"allowed_tiles": ["conveyor", "processor", "splitter", "inserter",
+						  "priority_lane", "source", "sink"],
+		"has_orders": false,
+		"unlock_cost": 600,
+	},
+	"farm": {
+		"display_name": "Farm",
+		"grid_w": 24, "grid_h": 18,
+		"allowed_tiles": ["conveyor", "processor", "splitter", "inserter",
+						  "priority_lane", "source", "sink"],
+		"has_orders": false,
+		"unlock_cost": 1000,
+	},
+}
+
 func _ready() -> void:
 	print("GlobalConfig initialized. Grid: ", GRID_W, "x", GRID_H)

@@ -178,6 +178,10 @@ func can_place_tile(x: int, y: int, kind: String) -> bool:
 	if x < 0 or x >= grid_w or y < 0 or y >= grid_h:
 		return false
 	var current_kind = grid[y][x]["kind"]
+	# Allow placing source/sink on empty tiles (admin/test feature)
+	if kind in [GC.SOURCE, GC.SINK]:
+		return current_kind == GC.EMPTY
+	# Prevent building on top of existing source/sink tiles
 	if current_kind in [GC.SOURCE, GC.SINK]:
 		return false
 	if kind == GC.OVEN and not tech_tree.get("ovens", false):
@@ -202,6 +206,47 @@ func place_tile(x: int, y: int, kind: String, rot: int) -> bool:
 		emit_signal("money_changed", money)
 	_set_tile(x, y, kind, rot)
 	return true
+
+# ------------------------------------------------------------------
+# Admin / Testing Helpers
+# ------------------------------------------------------------------
+
+func admin_add_money(amount: int) -> void:
+	money += amount
+	emit_signal("money_changed", money)
+
+func admin_unlock_all_research() -> void:
+	for key in tech_tree:
+		tech_tree[key] = true
+		emit_signal("research_unlocked", key)
+
+func admin_advance_expansion() -> void:
+	expansion_level += 1
+	emit_signal("expansion_advanced", expansion_level)
+
+func admin_spawn_items(count: int) -> void:
+	# Find all source tile positions
+	var sources: Array[Vector2i] = []
+	for y in range(grid_h):
+		for x in range(grid_w):
+			if grid[y][x]["kind"] == GC.SOURCE:
+				sources.append(Vector2i(x, y))
+	if sources.is_empty():
+		return
+	for i in range(count):
+		var src = sources[i % sources.size()]
+		var ingredient_type = ingredient_registry.get_weighted_random_type(rng)
+		var item_data = {
+			"x": src.x, "y": src.y,
+			"progress": 0.0,
+			"stage": "raw",
+			"delivery_boost": 0.0,
+			"ingredient_type": ingredient_type,
+			"product_type": "",
+			"recipe_key": "",
+		}
+		items.append(item_data)
+		emit_signal("item_spawned", item_data)
 
 # ------------------------------------------------------------------
 # Commercial Strategy
@@ -496,7 +541,8 @@ func _process_items(dt: float) -> void:
 						var sec_dir: Vector2i = GC.DIRS.get(sec_rot, Vector2i(1, 0))
 						var sx: int = item["x"] + sec_dir.x
 						var sy: int = item["y"] + sec_dir.y
-						if sx >= 0 and sx < grid_w and sy >= 0 and sy < grid_h:
+						if sx >= 0 and sx < grid_w and sy >= 0 and sy < grid_h \
+								and _can_accept_item_from(sx, sy, item["x"], item["y"]):
 							dir_vec = sec_dir
 						# else: fallback to primary direction
 					# Toggle for next item
@@ -506,6 +552,10 @@ func _process_items(dt: float) -> void:
 			var ny: int = item["y"] + dir_vec.y
 
 			if nx >= 0 and nx < grid_w and ny >= 0 and ny < grid_h:
+				# Validate that the destination tile accepts items from this direction
+				if not _can_accept_item_from(nx, ny, item["x"], item["y"]):
+					continue  # Item stays in place — destination rejects it
+
 				item["x"] = nx
 				item["y"] = ny
 				emit_signal("item_moved", i, Vector2i(nx, ny))
@@ -530,6 +580,42 @@ func _process_items(dt: float) -> void:
 	for idx in items_to_remove:
 		items.remove_at(idx)
 		emit_signal("item_removed", idx)
+
+# ------------------------------------------------------------------
+# Destination acceptance check
+# ------------------------------------------------------------------
+
+## Returns true if a tile at (dx, dy) will accept an item arriving from (sx, sy).
+## Machines and sinks accept from any direction. Conveyor-type tiles reject items
+## arriving from their output side (i.e. backwards onto the belt). Inserters are
+## never pushed onto — they pull items themselves.
+func _can_accept_item_from(dx: int, dy: int, sx: int, sy: int) -> bool:
+	var dest_tile: Dictionary = grid[dy][dx]
+	var dest_kind: String = dest_tile["kind"]
+
+	# Machines, sinks, and empty tiles accept items from any direction
+	if dest_kind in [GC.PROCESSOR, GC.OVEN, GC.ASSEMBLY_TABLE, GC.BOT_DOCK,
+					  GC.SINK, GC.EMPTY, GC.SOURCE]:
+		return true
+
+	# Conveyor-type tiles: reject items arriving from the output side (backwards)
+	if dest_kind in [GC.CONVEYOR, GC.SPLITTER, GC.PRIORITY_LANE]:
+		var dest_dir: Vector2i = GC.DIRS.get(dest_tile["rot"], Vector2i(1, 0))
+		# arrival_dir is the vector from source to destination
+		var arrival_dir := Vector2i(dx - sx, dy - sy)
+		# If the item arrives from the direction the belt outputs to, block it.
+		# That means: the belt points in direction dest_dir, and the item is
+		# arriving from -dest_dir (the output end).
+		if arrival_dir == -dest_dir:
+			return false
+		return true
+
+	# Inserters handle their own item pulling — don't push items onto them
+	if dest_kind == GC.INSERTER:
+		return false
+
+	# Unknown tile kind — allow by default
+	return true
 
 # ------------------------------------------------------------------
 # Waste handling

@@ -161,15 +161,21 @@ func _process(delta: float) -> void:
 # ------------------------------------------------------------------
 
 func _create_toolbar() -> void:
+	# Use a Control as anchor root — this properly inherits viewport size in CanvasLayer
+	var anchor_root = Control.new()
+	anchor_root.name = "ToolbarAnchor"
+	anchor_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	anchor_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(anchor_root)
+
 	var toolbar = PanelContainer.new()
 	toolbar.name = "BottomToolbar"
-	# Anchor to bottom, full width
 	toolbar.anchor_left = 0.0
 	toolbar.anchor_right = 1.0
 	toolbar.anchor_top = 1.0
 	toolbar.anchor_bottom = 1.0
-	toolbar.offset_top = -80.0
-	toolbar.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	toolbar.offset_top = -84.0
+	toolbar.mouse_filter = Control.MOUSE_FILTER_STOP
 
 	# Dark background
 	var style = StyleBoxFlat.new()
@@ -182,6 +188,7 @@ func _create_toolbar() -> void:
 	style.content_margin_top = 4
 	style.content_margin_bottom = 4
 	toolbar.add_theme_stylebox_override("panel", style)
+	anchor_root.add_child(toolbar)
 
 	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 2)
@@ -215,8 +222,6 @@ func _create_toolbar() -> void:
 	_status_label.add_theme_font_size_override("font_size", 12)
 	_status_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.8))
 	status_row.add_child(_status_label)
-
-	add_child(toolbar)
 
 	# Highlight initial selection
 	_update_toolbar_selection("conveyor")

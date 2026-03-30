@@ -5,7 +5,7 @@ extends Node2D
 ## Updated to work with LocationManager for multi-location support.
 
 var selected_tool: String = "conveyor"
-var rotation: int = 0
+var build_rotation: int = 0
 var camera_offset: Vector2 = Vector2.ZERO
 var zoom: float = 1.0
 var is_dragging: bool = false
@@ -120,7 +120,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			var grid_pos = _screen_to_grid(event.position)
 			if grid_pos != Vector2i(-1, -1) and grid_pos != last_drag_cell and simulation != null:
 				simulation.place_tile(grid_pos.x, grid_pos.y,
-					BUILD_TOOLS[selected_tool]["tile"], rotation)
+					BUILD_TOOLS[selected_tool]["tile"], build_rotation)
 				last_drag_cell = grid_pos
 		elif event.button_mask & MOUSE_BUTTON_MASK_MIDDLE:
 			camera_offset -= event.relative / zoom
@@ -134,8 +134,8 @@ func _select_tool(tool_key: String) -> void:
 		EventBus.show_notification.emit("Selected: %s" % BUILD_TOOLS[tool_key]["label"], "info")
 
 func _rotate() -> void:
-	rotation = (rotation + 1) % 4
-	EventBus.rotation_changed.emit(rotation)
+	build_rotation = (build_rotation + 1) % 4
+	EventBus.rotation_changed.emit(build_rotation)
 
 func _try_place_at_screen(screen_pos: Vector2) -> void:
 	var grid_pos = _screen_to_grid(screen_pos)
@@ -144,7 +144,7 @@ func _try_place_at_screen(screen_pos: Vector2) -> void:
 	if simulation == null:
 		return
 	var tile_kind = BUILD_TOOLS[selected_tool]["tile"]
-	simulation.place_tile(grid_pos.x, grid_pos.y, tile_kind, rotation)
+	simulation.place_tile(grid_pos.x, grid_pos.y, tile_kind, build_rotation)
 	last_drag_cell = grid_pos
 
 func _screen_to_grid(screen_pos: Vector2) -> Vector2i:

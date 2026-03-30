@@ -42,6 +42,12 @@ func _deferred_init() -> void:
 	simulation = location_manager.get_active_simulation()
 	if simulation == null:
 		push_warning("PlayerController: simulation is null after deferred init")
+	# Listen for tool selection from HUD toolbar
+	EventBus.tool_selected.connect(_on_tool_selected_from_hud)
+
+func _on_tool_selected_from_hud(tool_key: String) -> void:
+	if tool_key in BUILD_TOOLS:
+		selected_tool = tool_key
 
 func _on_location_switched(_old_key: String, new_key: String) -> void:
 	simulation = location_manager.get_simulation(new_key)
@@ -124,10 +130,12 @@ func _select_tool(tool_key: String) -> void:
 	if tool_key in BUILD_TOOLS:
 		selected_tool = tool_key
 		EventBus.request_build_mode.emit(BUILD_TOOLS[tool_key]["tile"])
+		EventBus.tool_selected.emit(tool_key)
 		EventBus.show_notification.emit("Selected: %s" % BUILD_TOOLS[tool_key]["label"], "info")
 
 func _rotate() -> void:
 	rotation = (rotation + 1) % 4
+	EventBus.rotation_changed.emit(rotation)
 
 func _try_place_at_screen(screen_pos: Vector2) -> void:
 	var grid_pos = _screen_to_grid(screen_pos)
